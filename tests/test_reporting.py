@@ -1,7 +1,12 @@
 import json
 from pathlib import Path
 
-from sentinel_tools.reporting import build_report, save_json, save_text
+from sentinel_tools.reporting import (
+    build_report,
+    save_html,
+    save_json,
+    save_text,
+)
 
 
 def sample_sections() -> dict[str, dict[str, str]]:
@@ -51,3 +56,41 @@ def test_save_text_includes_health_score(tmp_path: Path) -> None:
     assert "Health score: 100/100" in text
     assert "Health status: Excellent" in text
     assert "test-host" in text
+
+
+def test_save_html_contains_report_data(tmp_path: Path) -> None:
+    path = tmp_path / "report.html"
+
+    result = save_html(path, sample_sections())
+    html = path.read_text(encoding="utf-8")
+
+    assert result == path
+    assert "<!DOCTYPE html>" in html
+    assert "Sentinel Tools System Report" in html
+    assert "100/100" in html
+    assert "Excellent" in html
+
+
+def test_save_html_escapes_values(tmp_path: Path) -> None:
+    path = tmp_path / "report.html"
+    sections = sample_sections()
+    sections["network"]["Unsafe"] = "<script>alert(1)</script>"
+
+    save_html(path, sections)
+    html = path.read_text(encoding="utf-8")
+
+    assert "<script>" not in html
+    assert "&lt;script&gt;" in html
+
+
+def test_save_html_supports_redaction(tmp_path: Path) -> None:
+    path = tmp_path / "report.html"
+    sections = sample_sections()
+    sections["network"]["Address"] = "192.168.1.25"
+
+    save_html(path, sections, redact=True)
+    html = path.read_text(encoding="utf-8")
+
+    assert "192.168.1.25" not in html
+    assert "[PRIVATE-IP]" in html
+    assert "Redacted" in html
