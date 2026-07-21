@@ -1,4 +1,8 @@
-from sentinel_tools.scoring.health import Severity, calculate
+from sentinel_tools.scoring.health import (
+    Severity,
+    calculate,
+    relevant_journal_errors,
+)
 
 
 def healthy_data() -> dict[str, str]:
@@ -95,3 +99,43 @@ def test_serious_journal_error_is_critical() -> None:
     result = calculate(data)
 
     assert result.findings[0].severity is Severity.CRITICAL
+
+
+def test_duplicate_journal_messages_are_collapsed() -> None:
+    journal = "\n".join(
+        [
+            "Jul 21 18:00:01 host kernel: device reset failed with -71",
+            "Jul 21 18:00:02 host kernel: device reset failed with -71",
+            "Jul 21 18:00:03 host kernel: device reset failed with -71",
+        ]
+    )
+
+    errors = relevant_journal_errors(journal)
+
+    assert len(errors) == 1
+
+
+def test_process_ids_do_not_prevent_deduplication() -> None:
+    journal = "\n".join(
+        [
+            "example[1234]: connection failed",
+            "example[5678]: connection failed",
+        ]
+    )
+
+    errors = relevant_journal_errors(journal)
+
+    assert len(errors) == 1
+
+
+def test_distinct_journal_errors_are_preserved() -> None:
+    journal = "\n".join(
+        [
+            "kernel: device reset failed with -71",
+            "kernel: filesystem error detected",
+        ]
+    )
+
+    errors = relevant_journal_errors(journal)
+
+    assert len(errors) == 2
