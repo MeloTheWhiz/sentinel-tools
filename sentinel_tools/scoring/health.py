@@ -3,6 +3,26 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
+IGNORED_JOURNAL_PATTERNS = (
+    "tdx not supported by the host platform",
+    "watchdog hardware is disabled",
+    "a password is required",
+    "conversation failed",
+    "auth could not identify password",
+)
+
+SERIOUS_JOURNAL_PATTERNS = (
+    "i/o error",
+    "filesystem error",
+    "corruption",
+    "segmentation fault",
+    "kernel panic",
+    "out of memory",
+    "failed with",
+    "device reset",
+)
+
+
 @dataclass
 class HealthScore:
     score: int = 100
@@ -18,6 +38,39 @@ class HealthScore:
         if self.score >= 60:
             return "Needs attention"
         return "Critical"
+
+
+def relevant_journal_errors(journal: str) -> list[str]:
+    if journal.strip().lower() == "none":
+        return []
+
+    relevant: list[str] = []
+
+    for line in journal.splitlines():
+        lowered = line.lower()
+
+        if any(pattern in lowered for pattern in IGNORED_JOURNAL_PATTERNS):
+            continue
+
+        if line.strip():
+            relevant.append(line)
+
+    return relevant
+
+
+def journal_penalty(errors: list[str]) -> int:
+    if not errors:
+        return 0
+
+    serious_count = sum(
+        any(pattern in line.lower() for pattern in SERIOUS_JOURNAL_PATTERNS)
+        for line in errors
+    )
+
+    if serious_count:
+        return min(20, 10 + serious_count * 2)
+
+    return 5
 
 
 def calculate(data: dict[str, str]) -> HealthScore:
@@ -39,12 +92,17 @@ def calculate(data: dict[str, str]) -> HealthScore:
             "Inspect failed user services with: systemctl --user --failed"
         )
 
-    journal_errors = data.get("High-priority errors from this boot", "None")
-    if journal_errors.strip().lower() != "none":
-        result.score -= 10
-        result.warnings.append("The current boot contains high-priority errors.")
+    journal = data.get("High-priority errors from this boot", "None")
+    errors = relevant_journal_errors(journal)
+    penalty = journal_penalty(errors)
+
+    if penalty:
+        result.score -= penalty
+        result.warnings.append(
+            f"The current boot contains {len(errors)} relevant high-priority error(s)."
+        )
         result.recommendations.append(
-            "Review boot errors with: journalctl -b -p err"
+            "Review relevant boot errors with: journalctl -b -p err"
         )
 
     package_database = data.get("Package database", "")
