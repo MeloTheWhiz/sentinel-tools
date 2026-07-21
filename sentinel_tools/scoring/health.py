@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import re
+
 from dataclasses import dataclass, field
 from enum import StrEnum
-
 
 IGNORED_JOURNAL_PATTERNS = (
     "tdx not supported by the host platform",
@@ -22,6 +23,17 @@ SERIOUS_JOURNAL_PATTERNS = (
     "failed with",
     "device reset",
 )
+
+JOURNAL_PREFIX_PATTERN = re.compile(
+    r"^(?:"
+    r"(?:[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}"
+    r"|\d{4}-\d{2}-\d{2}T\S+)"
+    r"\s+\S+\s+"
+    r")?"
+    r"[^:\s]+(?:\[\d+\])?:\s*"
+)
+
+PROCESS_ID_PATTERN = re.compile(r"\[\d+\]")
 
 
 class Severity(StrEnum):
@@ -78,20 +90,39 @@ class HealthScore:
         self.score -= penalty
 
 
+def normalize_journal_line(line: str) -> str:
+    normalized = line.strip()
+    normalized = JOURNAL_PREFIX_PATTERN.sub("", normalized)
+    normalized = PROCESS_ID_PATTERN.sub("[]", normalized)
+    return " ".join(normalized.split())
+
+
 def relevant_journal_errors(journal: str) -> list[str]:
     if journal.strip().lower() == "none":
         return []
 
     relevant: list[str] = []
+    seen: set[str] = set()
 
     for line in journal.splitlines():
-        lowered = line.lower()
+        stripped = line.strip()
+
+        if not stripped:
+            continue
+
+        lowered = stripped.lower()
 
         if any(pattern in lowered for pattern in IGNORED_JOURNAL_PATTERNS):
             continue
 
-        if line.strip():
-            relevant.append(line)
+        normalized = normalize_journal_line(stripped)
+        key = normalized.lower()
+
+        if key in seen:
+            continue
+
+        seen.add(key)
+        relevant.append(stripped)
 
     return relevant
 
