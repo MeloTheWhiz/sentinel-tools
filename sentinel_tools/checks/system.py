@@ -8,8 +8,22 @@ def collect() -> dict:
         "Memory": ["free", "-h"],
         "Filesystems": ["df", "-hT", "-x", "tmpfs", "-x", "devtmpfs"],
         "Failed system services": ["systemctl", "--failed", "--no-legend", "--plain"],
-        "Failed user services": ["systemctl", "--user", "--failed", "--no-legend", "--plain"],
-        "High-priority errors from this boot": ["journalctl", "-b", "-p", "err", "--no-pager", "-n", "30"],
+        "Failed user services": [
+            "systemctl",
+            "--user",
+            "--failed",
+            "--no-legend",
+            "--plain",
+        ],
+        "High-priority errors from this boot": [
+            "journalctl",
+            "-b",
+            "-p",
+            "err",
+            "--no-pager",
+            "-n",
+            "30",
+        ],
         "Orphan packages": ["pacman", "-Qtdq"],
     }
     for label, command in commands.items():

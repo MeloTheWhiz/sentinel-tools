@@ -44,7 +44,6 @@ def test_score_never_goes_below_zero() -> None:
     assert result.score >= 0
 
 
-
 def test_expected_journal_messages_are_ignored() -> None:
     data = healthy_data()
     data["High-priority errors from this boot"] = "\n".join(
@@ -63,15 +62,12 @@ def test_expected_journal_messages_are_ignored() -> None:
 
 def test_real_journal_error_reduces_score() -> None:
     data = healthy_data()
-    data["High-priority errors from this boot"] = (
-        "kernel: device reset failed with -71"
-    )
+    data["High-priority errors from this boot"] = "kernel: device reset failed with -71"
 
     result = calculate(data)
 
     assert result.score < 100
     assert "relevant high-priority" in result.warnings[0]
-
 
 
 def test_failed_system_service_is_critical() -> None:
@@ -94,9 +90,7 @@ def test_orphan_packages_are_informational() -> None:
 
 def test_serious_journal_error_is_critical() -> None:
     data = healthy_data()
-    data["High-priority errors from this boot"] = (
-        "kernel: filesystem error detected"
-    )
+    data["High-priority errors from this boot"] = "kernel: filesystem error detected"
 
     result = calculate(data)
 

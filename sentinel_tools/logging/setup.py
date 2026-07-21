@@ -14,9 +14,7 @@ def configure_logging() -> logging.Logger:
 
     if not logger.handlers:
         handler = logging.FileHandler(log_file)
-        formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)s | %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 

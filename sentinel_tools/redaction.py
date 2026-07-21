@@ -15,9 +15,7 @@ PRIVATE_IPV4_PATTERN = re.compile(
     r")\b"
 )
 
-MAC_ADDRESS_PATTERN = re.compile(
-    r"\b(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}\b"
-)
+MAC_ADDRESS_PATTERN = re.compile(r"\b(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}\b")
 
 
 def redact_text(value: str) -> str:
@@ -68,11 +66,7 @@ def redact_network_devices(value: str) -> str:
     for line in value.splitlines():
         parts = line.split(":", 3)
 
-        if (
-            len(parts) == 4
-            and parts[1] == "wifi"
-            and parts[2].startswith("connected")
-        ):
+        if len(parts) == 4 and parts[1] == "wifi" and parts[2].startswith("connected"):
             parts[3] = "[REDACTED-SSID]"
             line = ":".join(parts)
 

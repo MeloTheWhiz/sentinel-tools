@@ -9,7 +9,7 @@ from sentinel_tools.config.loader import load_config
 from sentinel_tools.core import ensure_arch, header
 from sentinel_tools.logging.setup import configure_logging
 from sentinel_tools.maintenance import clean, update
-from sentinel_tools.reporting import save_json, save_text
+from sentinel_tools.reporting import save_html, save_json, save_text
 from sentinel_tools.scoring.health import calculate
 
 
@@ -49,9 +49,18 @@ def menu() -> None:
         "2": ("Clean system", clean),
         "3": ("System health", run_health_check),
         "4": ("Security audit", lambda: show("SECURITY AUDIT", security.collect())),
-        "5": ("Network diagnostics", lambda: show("NETWORK DIAGNOSTICS", network.collect())),
-        "6": ("Storage diagnostics", lambda: show("STORAGE DIAGNOSTICS", storage.collect())),
-        "7": ("Save report", lambda: print(save_text(Path.home() / "sentinel-tools-report.txt"))),
+        "5": (
+            "Network diagnostics",
+            lambda: show("NETWORK DIAGNOSTICS", network.collect()),
+        ),
+        "6": (
+            "Storage diagnostics",
+            lambda: show("STORAGE DIAGNOSTICS", storage.collect()),
+        ),
+        "7": (
+            "Save report",
+            lambda: print(save_text(Path.home() / "sentinel-tools-report.txt")),
+        ),
     }
 
     while True:
@@ -95,7 +104,7 @@ def main() -> None:
     report_parser = sub.add_parser("report")
     report_parser.add_argument(
         "--format",
-        choices=("text", "json"),
+        choices=("text", "json", "html"),
         default="text",
     )
     report_parser.add_argument(
@@ -132,6 +141,8 @@ def main() -> None:
             output = args.output.expanduser()
         elif args.format == "json":
             output = Path.home() / "sentinel-tools-report.json"
+        elif args.format == "html":
+            output = Path.home() / "sentinel-tools-report.html"
         else:
             output = Path.home() / "sentinel-tools-report.txt"
 
@@ -139,6 +150,8 @@ def main() -> None:
 
         if args.format == "json":
             print(save_json(output, redact=args.redact))
+        elif args.format == "html":
+            print(save_html(output, redact=args.redact))
         else:
             print(save_text(output, redact=args.redact))
 

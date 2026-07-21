@@ -153,9 +153,7 @@ def calculate(data: dict[str, str]) -> HealthScore:
                 f"The current boot contains {len(errors)} "
                 "relevant high-priority error(s)."
             ),
-            recommendation=(
-                "Review relevant boot errors with: journalctl -b -p err"
-            ),
+            recommendation=("Review relevant boot errors with: journalctl -b -p err"),
             penalty=penalty,
         )
 
