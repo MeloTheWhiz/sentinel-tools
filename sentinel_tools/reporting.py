@@ -38,6 +38,7 @@ def build_report(
             "status": health.status,
             "findings": [
                 {
+                    "code": finding.code,
                     "severity": finding.severity.value,
                     "message": finding.message,
                     "recommendation": finding.recommendation,
@@ -71,7 +72,9 @@ def save_text(
     if health.findings:
         lines.extend(["", "HEALTH FINDINGS"])
         for finding in health.findings:
-            lines.append(f"[{finding.severity.value.upper()}] {finding.message}")
+            lines.append(
+                f"[{finding.code}][{finding.severity.value.upper()}] {finding.message}"
+            )
             lines.append(f"Recommendation: {finding.recommendation}")
 
     for title, values in report_sections.items():

@@ -44,6 +44,7 @@ class Severity(StrEnum):
 
 @dataclass(frozen=True)
 class Finding:
+    code: str
     severity: Severity
     message: str
     recommendation: str
@@ -75,6 +76,7 @@ class HealthScore:
     def add_finding(
         self,
         *,
+        code: str,
         severity: Severity,
         message: str,
         recommendation: str,
@@ -82,6 +84,7 @@ class HealthScore:
     ) -> None:
         self.findings.append(
             Finding(
+                code=code,
                 severity=severity,
                 message=message,
                 recommendation=recommendation,
@@ -194,6 +197,7 @@ def calculate(data: dict[str, str]) -> HealthScore:
     failed_system = data.get("Failed system services", "None")
     if failed_system.strip().lower() != "none":
         result.add_finding(
+            code="SYS001",
             severity=Severity.CRITICAL,
             message="One or more system services have failed.",
             recommendation="Inspect failed services with: systemctl --failed",
@@ -203,6 +207,7 @@ def calculate(data: dict[str, str]) -> HealthScore:
     failed_user = data.get("Failed user services", "None")
     if failed_user.strip().lower() != "none":
         result.add_finding(
+            code="USR001",
             severity=Severity.WARNING,
             message="One or more user services have failed.",
             recommendation=(
@@ -217,6 +222,7 @@ def calculate(data: dict[str, str]) -> HealthScore:
 
     if penalty:
         result.add_finding(
+            code="JRN001",
             severity=journal_severity(errors),
             message=(
                 f"The current boot contains {len(errors)} "
@@ -229,6 +235,7 @@ def calculate(data: dict[str, str]) -> HealthScore:
     package_database = data.get("Package database", "")
     if "no database errors" not in package_database.lower():
         result.add_finding(
+            code="PKG001",
             severity=Severity.CRITICAL,
             message="The package database may contain errors.",
             recommendation="Check the package database with: pacman -Dk",
@@ -238,6 +245,7 @@ def calculate(data: dict[str, str]) -> HealthScore:
     orphan_packages = data.get("Orphan packages", "None")
     if orphan_packages.strip().lower() != "none":
         result.add_finding(
+            code="PKG002",
             severity=Severity.INFO,
             message="Orphan packages are installed.",
             recommendation="Review orphan packages with: pacman -Qtdq",
