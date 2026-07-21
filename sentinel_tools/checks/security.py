@@ -4,10 +4,10 @@ from sentinel_tools.core import run, have
 def collect() -> dict:
     data = {}
     if have("ufw"):
-        result = run(["ufw", "status", "verbose"], sudo=True)
+        result = run(["ufw", "status", "verbose"], sudo=True, sudo_prompt=False)
         data["Firewall"] = result.stdout or result.stderr
     elif have("nft"):
-        result = run(["nft", "list", "ruleset"], sudo=True)
+        result = run(["nft", "list", "ruleset"], sudo=True, sudo_prompt=False)
         data["Firewall"] = result.stdout or result.stderr
     else:
         data["Firewall"] = "No supported firewall command found."

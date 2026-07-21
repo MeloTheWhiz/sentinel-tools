@@ -10,13 +10,13 @@ def collect() -> dict:
     data["Mounts"] = mounts.stdout or mounts.stderr
 
     if have("btrfs"):
-        usage = run(["btrfs", "filesystem", "usage", "/"], sudo=True)
+        usage = run(["btrfs", "filesystem", "usage", "/"], sudo=True, sudo_prompt=False)
         data["Btrfs root usage"] = usage.stdout or usage.stderr
-        scrub = run(["btrfs", "scrub", "status", "/"], sudo=True)
+        scrub = run(["btrfs", "scrub", "status", "/"], sudo=True, sudo_prompt=False)
         data["Btrfs scrub"] = scrub.stdout or scrub.stderr
 
     if have("smartctl"):
-        result = run(["smartctl", "-H", "/dev/sda"], sudo=True)
+        result = run(["smartctl", "-H", "/dev/sda"], sudo=True, sudo_prompt=False)
         data["Drive health /dev/sda"] = result.stdout or result.stderr
     else:
         data["Drive health"] = "Install smartmontools to enable SMART checks."
