@@ -7,6 +7,7 @@ from typing import Any
 
 from sentinel_tools import __version__
 from sentinel_tools.checks import network, security, storage, system
+from sentinel_tools.redaction import redact_report, redact_sections
 from sentinel_tools.scoring.health import calculate
 
 
@@ -50,8 +51,13 @@ def build_report(
 def save_text(
     path: Path,
     sections: dict[str, dict[str, str]] | None = None,
+    *,
+    redact: bool = False,
 ) -> Path:
     report_sections = sections if sections is not None else collect_sections()
+
+    if redact:
+        report_sections = redact_sections(report_sections)
     health = calculate(report_sections["system"])
 
     lines = [
@@ -83,8 +89,13 @@ def save_text(
 def save_json(
     path: Path,
     sections: dict[str, dict[str, str]] | None = None,
+    *,
+    redact: bool = False,
 ) -> Path:
     report = build_report(sections)
+
+    if redact:
+        report = redact_report(report)
     path.write_text(
         json.dumps(report, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",

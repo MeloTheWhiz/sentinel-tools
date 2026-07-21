@@ -102,6 +102,11 @@ def main() -> None:
         "--output",
         type=Path,
     )
+    report_parser.add_argument(
+        "--redact",
+        action="store_true",
+        help="Mask sensitive information in the report.",
+    )
 
     args = parser.parse_args()
     command = args.command or "menu"
@@ -133,9 +138,9 @@ def main() -> None:
         output.parent.mkdir(parents=True, exist_ok=True)
 
         if args.format == "json":
-            print(save_json(output))
+            print(save_json(output, redact=args.redact))
         else:
-            print(save_text(output))
+            print(save_text(output, redact=args.redact))
 
 
 if __name__ == "__main__":
