@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import StrEnum
 
 
 IGNORED_JOURNAL_PATTERNS = (
@@ -23,11 +24,23 @@ SERIOUS_JOURNAL_PATTERNS = (
 )
 
 
+class Severity(StrEnum):
+    INFO = "info"
+    WARNING = "warning"
+    CRITICAL = "critical"
+
+
+@dataclass(frozen=True)
+class Finding:
+    severity: Severity
+    message: str
+    recommendation: str
+
+
 @dataclass
 class HealthScore:
     score: int = 100
-    warnings: list[str] = field(default_factory=list)
-    recommendations: list[str] = field(default_factory=list)
+    findings: list[Finding] = field(default_factory=list)
 
     @property
     def status(self) -> str:
@@ -38,6 +51,31 @@ class HealthScore:
         if self.score >= 60:
             return "Needs attention"
         return "Critical"
+
+    @property
+    def warnings(self) -> list[str]:
+        return [finding.message for finding in self.findings]
+
+    @property
+    def recommendations(self) -> list[str]:
+        return [finding.recommendation for finding in self.findings]
+
+    def add_finding(
+        self,
+        *,
+        severity: Severity,
+        message: str,
+        recommendation: str,
+        penalty: int,
+    ) -> None:
+        self.findings.append(
+            Finding(
+                severity=severity,
+                message=message,
+                recommendation=recommendation,
+            )
+        )
+        self.score -= penalty
 
 
 def relevant_journal_errors(journal: str) -> list[str]:
@@ -73,23 +111,35 @@ def journal_penalty(errors: list[str]) -> int:
     return 5
 
 
+def journal_severity(errors: list[str]) -> Severity:
+    serious = any(
+        any(pattern in line.lower() for pattern in SERIOUS_JOURNAL_PATTERNS)
+        for line in errors
+    )
+    return Severity.CRITICAL if serious else Severity.WARNING
+
+
 def calculate(data: dict[str, str]) -> HealthScore:
     result = HealthScore()
 
     failed_system = data.get("Failed system services", "None")
     if failed_system.strip().lower() != "none":
-        result.score -= 20
-        result.warnings.append("One or more system services have failed.")
-        result.recommendations.append(
-            "Inspect failed services with: systemctl --failed"
+        result.add_finding(
+            severity=Severity.CRITICAL,
+            message="One or more system services have failed.",
+            recommendation="Inspect failed services with: systemctl --failed",
+            penalty=20,
         )
 
     failed_user = data.get("Failed user services", "None")
     if failed_user.strip().lower() != "none":
-        result.score -= 10
-        result.warnings.append("One or more user services have failed.")
-        result.recommendations.append(
-            "Inspect failed user services with: systemctl --user --failed"
+        result.add_finding(
+            severity=Severity.WARNING,
+            message="One or more user services have failed.",
+            recommendation=(
+                "Inspect failed user services with: systemctl --user --failed"
+            ),
+            penalty=10,
         )
 
     journal = data.get("High-priority errors from this boot", "None")
@@ -97,28 +147,34 @@ def calculate(data: dict[str, str]) -> HealthScore:
     penalty = journal_penalty(errors)
 
     if penalty:
-        result.score -= penalty
-        result.warnings.append(
-            f"The current boot contains {len(errors)} relevant high-priority error(s)."
-        )
-        result.recommendations.append(
-            "Review relevant boot errors with: journalctl -b -p err"
+        result.add_finding(
+            severity=journal_severity(errors),
+            message=(
+                f"The current boot contains {len(errors)} "
+                "relevant high-priority error(s)."
+            ),
+            recommendation=(
+                "Review relevant boot errors with: journalctl -b -p err"
+            ),
+            penalty=penalty,
         )
 
     package_database = data.get("Package database", "")
     if "no database errors" not in package_database.lower():
-        result.score -= 20
-        result.warnings.append("The package database may contain errors.")
-        result.recommendations.append(
-            "Check the package database with: pacman -Dk"
+        result.add_finding(
+            severity=Severity.CRITICAL,
+            message="The package database may contain errors.",
+            recommendation="Check the package database with: pacman -Dk",
+            penalty=20,
         )
 
     orphan_packages = data.get("Orphan packages", "None")
     if orphan_packages.strip().lower() != "none":
-        result.score -= 5
-        result.warnings.append("Orphan packages are installed.")
-        result.recommendations.append(
-            "Review orphan packages with: pacman -Qtdq"
+        result.add_finding(
+            severity=Severity.INFO,
+            message="Orphan packages are installed.",
+            recommendation="Review orphan packages with: pacman -Qtdq",
+            penalty=5,
         )
 
     result.score = max(0, min(100, result.score))
