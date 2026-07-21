@@ -5,7 +5,9 @@ from pathlib import Path
 
 from sentinel_tools import __version__
 from sentinel_tools.checks import network, security, storage, system
+from sentinel_tools.config.loader import load_config
 from sentinel_tools.core import ensure_arch, header
+from sentinel_tools.logging.setup import configure_logging
 from sentinel_tools.maintenance import clean, update
 from sentinel_tools.reporting import save_text
 
@@ -45,6 +47,12 @@ def menu() -> None:
 
 
 def main() -> None:
+    logger = configure_logging()
+    config = load_config()
+
+    logger.info("Sentinel Tools started")
+    logger.info("Loaded configuration: %s", config)
+
     ensure_arch()
     parser = argparse.ArgumentParser(prog="sentinel-tools")
     parser.add_argument("--version", action="version", version=__version__)
