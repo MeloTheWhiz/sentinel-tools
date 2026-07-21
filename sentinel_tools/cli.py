@@ -27,26 +27,27 @@ def show_health_score(data: dict[str, str]) -> None:
     print(f"Score: {result.score}/100")
     print(f"Status: {result.status}")
 
-    print("\nWarnings:")
-    if result.warnings:
-        for warning in result.warnings:
-            print(f"- {warning}")
+    print("\nFindings:")
+    if result.findings:
+        for finding in result.findings:
+            label = finding.severity.value.upper()
+            print(f"[{label}] {finding.message}")
+            print(f"  Recommendation: {finding.recommendation}")
     else:
-        print("- None")
+        print("[OK] No health findings detected.")
 
-    print("\nRecommendations:")
-    if result.recommendations:
-        for recommendation in result.recommendations:
-            print(f"- {recommendation}")
-    else:
-        print("- No action required")
+
+def run_health_check() -> None:
+    data = system.collect()
+    show("SYSTEM HEALTH", data)
+    show_health_score(data)
 
 
 def menu() -> None:
     actions = {
         "1": ("Update system", update),
         "2": ("Clean system", clean),
-        "3": ("System health", lambda: show("SYSTEM HEALTH", system.collect())),
+        "3": ("System health", run_health_check),
         "4": ("Security audit", lambda: show("SECURITY AUDIT", security.collect())),
         "5": ("Network diagnostics", lambda: show("NETWORK DIAGNOSTICS", network.collect())),
         "6": ("Storage diagnostics", lambda: show("STORAGE DIAGNOSTICS", storage.collect())),

@@ -1,4 +1,4 @@
-from sentinel_tools.scoring.health import calculate
+from sentinel_tools.scoring.health import Severity, calculate
 
 
 def healthy_data() -> dict[str, str]:
@@ -71,3 +71,33 @@ def test_real_journal_error_reduces_score() -> None:
 
     assert result.score < 100
     assert "relevant high-priority" in result.warnings[0]
+
+
+
+def test_failed_system_service_is_critical() -> None:
+    data = healthy_data()
+    data["Failed system services"] = "example.service failed"
+
+    result = calculate(data)
+
+    assert result.findings[0].severity is Severity.CRITICAL
+
+
+def test_orphan_packages_are_informational() -> None:
+    data = healthy_data()
+    data["Orphan packages"] = "unused-package"
+
+    result = calculate(data)
+
+    assert result.findings[0].severity is Severity.INFO
+
+
+def test_serious_journal_error_is_critical() -> None:
+    data = healthy_data()
+    data["High-priority errors from this boot"] = (
+        "kernel: filesystem error detected"
+    )
+
+    result = calculate(data)
+
+    assert result.findings[0].severity is Severity.CRITICAL
