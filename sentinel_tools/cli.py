@@ -31,7 +31,7 @@ def show_health_score(data: dict[str, str]) -> None:
     if result.findings:
         for finding in result.findings:
             label = finding.severity.value.upper()
-            print(f"[{label}] {finding.message}")
+            print(f"[{finding.code}][{label}] {finding.message}")
             print(f"  Recommendation: {finding.recommendation}")
     else:
         print("[OK] No health findings detected.")
