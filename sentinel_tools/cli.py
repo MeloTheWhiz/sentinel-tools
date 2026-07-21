@@ -9,7 +9,7 @@ from sentinel_tools.config.loader import load_config
 from sentinel_tools.core import ensure_arch, header
 from sentinel_tools.logging.setup import configure_logging
 from sentinel_tools.maintenance import clean, update
-from sentinel_tools.reporting import save_text
+from sentinel_tools.reporting import save_json, save_text
 from sentinel_tools.scoring.health import calculate
 
 
@@ -81,8 +81,27 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog="sentinel-tools")
     parser.add_argument("--version", action="version", version=__version__)
     sub = parser.add_subparsers(dest="command")
-    for command in ("menu", "health", "update", "clean", "security", "network", "storage", "report"):
+    for command in (
+        "menu",
+        "health",
+        "update",
+        "clean",
+        "security",
+        "network",
+        "storage",
+    ):
         sub.add_parser(command)
+
+    report_parser = sub.add_parser("report")
+    report_parser.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+    )
+    report_parser.add_argument(
+        "--output",
+        type=Path,
+    )
 
     args = parser.parse_args()
     command = args.command or "menu"
@@ -104,7 +123,19 @@ def main() -> None:
     elif command == "storage":
         show("STORAGE DIAGNOSTICS", storage.collect())
     elif command == "report":
-        print(save_text(Path.home() / "sentinel-tools-report.txt"))
+        if args.output:
+            output = args.output.expanduser()
+        elif args.format == "json":
+            output = Path.home() / "sentinel-tools-report.json"
+        else:
+            output = Path.home() / "sentinel-tools-report.txt"
+
+        output.parent.mkdir(parents=True, exist_ok=True)
+
+        if args.format == "json":
+            print(save_json(output))
+        else:
+            print(save_text(output))
 
 
 if __name__ == "__main__":
