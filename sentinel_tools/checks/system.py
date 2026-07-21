@@ -20,6 +20,6 @@ def collect() -> dict:
         plasma = run(["plasmashell", "--version"])
         data["KDE Plasma"] = plasma.stdout or plasma.stderr
 
-    database = run(["pacman", "-Dk"], sudo=True)
+    database = run(["pacman", "-Dk"])
     data["Package database"] = database.stdout or database.stderr
     return data
