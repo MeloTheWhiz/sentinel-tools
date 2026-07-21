@@ -10,6 +10,7 @@ from sentinel_tools.core import ensure_arch, header
 from sentinel_tools.logging.setup import configure_logging
 from sentinel_tools.maintenance import clean, update
 from sentinel_tools.reporting import save_text
+from sentinel_tools.scoring.health import calculate
 
 
 def show(title: str, data: dict) -> None:
@@ -17,6 +18,28 @@ def show(title: str, data: dict) -> None:
     for key, value in data.items():
         print(f"\n{key}:")
         print(value or "None")
+
+
+def show_health_score(data: dict[str, str]) -> None:
+    result = calculate(data)
+
+    header("HEALTH SCORE")
+    print(f"Score: {result.score}/100")
+    print(f"Status: {result.status}")
+
+    print("\nWarnings:")
+    if result.warnings:
+        for warning in result.warnings:
+            print(f"- {warning}")
+    else:
+        print("- None")
+
+    print("\nRecommendations:")
+    if result.recommendations:
+        for recommendation in result.recommendations:
+            print(f"- {recommendation}")
+    else:
+        print("- No action required")
 
 
 def menu() -> None:
@@ -66,7 +89,9 @@ def main() -> None:
     if command == "menu":
         menu()
     elif command == "health":
-        show("SYSTEM HEALTH", system.collect())
+        health_data = system.collect()
+        show("SYSTEM HEALTH", health_data)
+        show_health_score(health_data)
     elif command == "update":
         raise SystemExit(update())
     elif command == "clean":
