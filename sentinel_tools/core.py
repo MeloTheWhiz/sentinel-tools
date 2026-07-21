@@ -19,12 +19,52 @@ class Result:
         return self.returncode == 0
 
 
-def run(command: Iterable[str], *, sudo: bool = False) -> Result:
+def run(
+    command: Iterable[str],
+    *,
+    sudo: bool = False,
+    sudo_prompt: bool = True,
+) -> Result:
     cmd = list(command)
+
     if sudo:
-        cmd = ["sudo", *cmd]
-    process = subprocess.run(cmd, text=True, capture_output=True, check=False)
-    return Result(process.returncode, process.stdout.strip(), process.stderr.strip())
+        sudo_command = ["sudo"]
+
+        if not sudo_prompt:
+            sudo_command.append("-n")
+
+        cmd = [*sudo_command, *cmd]
+
+    try:
+        process = subprocess.run(
+            cmd,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except FileNotFoundError as error:
+        return Result(
+            returncode=127,
+            stdout="",
+            stderr=f"Command not found: {error.filename}",
+        )
+
+    stderr = process.stderr.strip()
+
+    if sudo and not sudo_prompt and process.returncode != 0:
+        sudo_messages = (
+            "a password is required",
+            "no password was provided",
+            "a terminal is required",
+        )
+        if any(message in stderr.lower() for message in sudo_messages):
+            stderr = "Administrator access required."
+
+    return Result(
+        returncode=process.returncode,
+        stdout=process.stdout.strip(),
+        stderr=stderr,
+    )
 
 
 def have(command: str) -> bool:
