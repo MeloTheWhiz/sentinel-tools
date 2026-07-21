@@ -1,0 +1,23 @@
+from sentinel_tools.core import run, have
+
+
+def collect() -> dict:
+    data = {}
+    usage = run(["df", "-hT", "-x", "tmpfs", "-x", "devtmpfs"])
+    data["Filesystem usage"] = usage.stdout or usage.stderr
+
+    mounts = run(["findmnt", "-D"])
+    data["Mounts"] = mounts.stdout or mounts.stderr
+
+    if have("btrfs"):
+        usage = run(["btrfs", "filesystem", "usage", "/"], sudo=True)
+        data["Btrfs root usage"] = usage.stdout or usage.stderr
+        scrub = run(["btrfs", "scrub", "status", "/"], sudo=True)
+        data["Btrfs scrub"] = scrub.stdout or scrub.stderr
+
+    if have("smartctl"):
+        result = run(["smartctl", "-H", "/dev/sda"], sudo=True)
+        data["Drive health /dev/sda"] = result.stdout or result.stderr
+    else:
+        data["Drive health"] = "Install smartmontools to enable SMART checks."
+    return data

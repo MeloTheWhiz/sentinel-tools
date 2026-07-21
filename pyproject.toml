@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sentinel-tools"
+version = "0.1.1"
+description = "Safe Arch Linux maintenance and diagnostic toolkit"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{name = "Carmelo A. Acevedo"}]
+dependencies = []
+
+[project.scripts]
+sentinel-tools = "sentinel_tools.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["sentinel_tools*"]
