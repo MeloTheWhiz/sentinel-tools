@@ -1,6 +1,7 @@
 from sentinel_tools.scoring.health import (
     Severity,
     calculate,
+    journal_recommendation,
     relevant_journal_errors,
 )
 
@@ -139,3 +140,34 @@ def test_distinct_journal_errors_are_preserved() -> None:
     errors = relevant_journal_errors(journal)
 
     assert len(errors) == 2
+
+
+def test_filesystem_error_gets_filesystem_recommendation() -> None:
+    recommendation = journal_recommendation(["kernel: filesystem error detected"])
+
+    assert "filesystem" in recommendation.lower()
+    assert "storage health" in recommendation.lower()
+
+
+def test_device_reset_gets_hardware_recommendation() -> None:
+    recommendation = journal_recommendation(
+        ["kernel: usb device reset failed with -71"]
+    )
+
+    assert "journalctl -k" in recommendation
+    assert "hardware" in recommendation.lower()
+
+
+def test_out_of_memory_gets_memory_recommendation() -> None:
+    recommendation = journal_recommendation(
+        ["kernel: out of memory: killed process 1234"]
+    )
+
+    assert "memory pressure" in recommendation.lower()
+    assert "swap" in recommendation.lower()
+
+
+def test_unknown_journal_error_gets_default_recommendation() -> None:
+    recommendation = journal_recommendation(["example.service: unexpected error"])
+
+    assert recommendation == ("Review relevant boot errors with: journalctl -b -p err")

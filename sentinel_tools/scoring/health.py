@@ -150,6 +150,44 @@ def journal_severity(errors: list[str]) -> Severity:
     return Severity.CRITICAL if serious else Severity.WARNING
 
 
+def journal_recommendation(errors: list[str]) -> str:
+    combined = "\n".join(errors).lower()
+
+    if "filesystem error" in combined or "corruption" in combined:
+        return (
+            "Review filesystem errors with: journalctl -b -p err; "
+            "then inspect storage health and run the appropriate filesystem check "
+            "from a safe environment."
+        )
+
+    if "i/o error" in combined or "device reset" in combined:
+        return (
+            "Inspect kernel device errors with: journalctl -k -b -p err; "
+            "then check cables, USB devices, storage health, and hardware logs."
+        )
+
+    if "out of memory" in combined:
+        return (
+            "Inspect memory pressure with: journalctl -b | grep -i 'out of memory'; "
+            "then review RAM, swap, and high-memory processes."
+        )
+
+    if "segmentation fault" in combined:
+        return (
+            "Identify the crashing process with: "
+            "journalctl -b | grep -i 'segmentation fault'; "
+            "then update, reinstall, or debug the affected application."
+        )
+
+    if "kernel panic" in combined:
+        return (
+            "Review the previous boot with: journalctl -k -b -1; "
+            "then check recent kernel, driver, firmware, and hardware changes."
+        )
+
+    return "Review relevant boot errors with: journalctl -b -p err"
+
+
 def calculate(data: dict[str, str]) -> HealthScore:
     result = HealthScore()
 
@@ -184,7 +222,7 @@ def calculate(data: dict[str, str]) -> HealthScore:
                 f"The current boot contains {len(errors)} "
                 "relevant high-priority error(s)."
             ),
-            recommendation=("Review relevant boot errors with: journalctl -b -p err"),
+            recommendation=journal_recommendation(errors),
             penalty=penalty,
         )
 
