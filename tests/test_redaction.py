@@ -24,11 +24,7 @@ def sensitive_sections() -> dict[str, dict[str, str]]:
                 "*       Yum Yum Yum   70      540 Mbit/s WPA2\n"
                 "        NeighborNet   40      195 Mbit/s WPA2"
             ),
-            "Routes": (
-                "default via 192.168.1.1 "
-                "src 192.168.1.47 "
-                "aa:bb:cc:dd:ee:ff"
-            ),
+            "Routes": ("default via 192.168.1.1 src 192.168.1.47 aa:bb:cc:dd:ee:ff"),
         },
         "storage": {"Mount": "/home/melo"},
         "security": {"Listening": "192.168.1.47:8080"},
@@ -36,9 +32,7 @@ def sensitive_sections() -> dict[str, dict[str, str]]:
 
 
 def test_redact_text_masks_private_network_data() -> None:
-    result = redact_text(
-        "Gateway 192.168.1.1 device aa:bb:cc:dd:ee:ff"
-    )
+    result = redact_text("Gateway 192.168.1.1 device aa:bb:cc:dd:ee:ff")
 
     assert "192.168.1.1" not in result
     assert "aa:bb:cc:dd:ee:ff" not in result
