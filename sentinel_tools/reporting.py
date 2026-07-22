@@ -24,11 +24,16 @@ def collect_sections() -> dict[str, dict[str, str]]:
 def build_system_summary(system_data: dict[str, str]) -> dict[str, str]:
     summary_keys = (
         "Hostname",
+        "Operating System",
         "Kernel",
         "Architecture",
+        "Desktop",
+        "CPU",
+        "Memory",
+        "Python",
+        "Python executable",
         "KDE Plasma",
     )
-
     return {
         key: system_data[key]
         for key in summary_keys
