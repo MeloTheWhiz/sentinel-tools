@@ -32,6 +32,7 @@ def test_build_report_contains_health_data() -> None:
     assert report["health"]["status"] == "Excellent"
     assert report["health"]["findings"] == []
     assert report["diagnostics"]["system"]["Hostname"] == "test-host"
+    assert report["system_summary"]["Hostname"] == "test-host"
 
 
 def test_save_json_writes_valid_json(tmp_path: Path) -> None:
@@ -44,6 +45,7 @@ def test_save_json_writes_valid_json(tmp_path: Path) -> None:
     assert data["application"]["name"] == "Sentinel Tools"
     assert data["health"]["score"] == 100
     assert data["diagnostics"]["network"]["Connectivity"] == "Online"
+    assert data["system_summary"]["Hostname"] == "test-host"
 
 
 def test_save_text_includes_health_score(tmp_path: Path) -> None:
@@ -56,6 +58,8 @@ def test_save_text_includes_health_score(tmp_path: Path) -> None:
     assert "Health score: 100/100" in text
     assert "Health status: Excellent" in text
     assert "test-host" in text
+    assert "SYSTEM SUMMARY" in text
+    assert "Hostname: test-host" in text
 
 
 def test_save_html_contains_report_data(tmp_path: Path) -> None:
@@ -69,6 +73,8 @@ def test_save_html_contains_report_data(tmp_path: Path) -> None:
     assert "Sentinel Tools System Report" in html
     assert "100/100" in html
     assert "Excellent" in html
+    assert "System Summary" in html
+    assert "test-host" in html
 
 
 def test_save_html_escapes_values(tmp_path: Path) -> None:
