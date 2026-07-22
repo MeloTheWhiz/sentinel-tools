@@ -171,3 +171,73 @@ def test_unknown_journal_error_gets_default_recommendation() -> None:
     recommendation = journal_recommendation(["example.service: unexpected error"])
 
     assert recommendation == ("Review relevant boot errors with: journalctl -b -p err")
+
+
+def test_failed_system_service_uses_sys001() -> None:
+    result = calculate(
+        {
+            "Failed system services": "example.service",
+            "Failed user services": "None",
+            "High-priority errors from this boot": "None",
+            "Package database": "No database errors found",
+            "Orphan packages": "None",
+        }
+    )
+
+    assert result.findings[0].code == "SYS001"
+
+
+def test_failed_user_service_uses_usr001() -> None:
+    result = calculate(
+        {
+            "Failed system services": "None",
+            "Failed user services": "example-user.service",
+            "High-priority errors from this boot": "None",
+            "Package database": "No database errors found",
+            "Orphan packages": "None",
+        }
+    )
+
+    assert result.findings[0].code == "USR001"
+
+
+def test_journal_error_uses_jrn001() -> None:
+    result = calculate(
+        {
+            "Failed system services": "None",
+            "Failed user services": "None",
+            "High-priority errors from this boot": "kernel: device reset",
+            "Package database": "No database errors found",
+            "Orphan packages": "None",
+        }
+    )
+
+    assert result.findings[0].code == "JRN001"
+
+
+def test_package_database_error_uses_pkg001() -> None:
+    result = calculate(
+        {
+            "Failed system services": "None",
+            "Failed user services": "None",
+            "High-priority errors from this boot": "None",
+            "Package database": "Database validation failed",
+            "Orphan packages": "None",
+        }
+    )
+
+    assert result.findings[0].code == "PKG001"
+
+
+def test_orphan_packages_use_pkg002() -> None:
+    result = calculate(
+        {
+            "Failed system services": "None",
+            "Failed user services": "None",
+            "High-priority errors from this boot": "None",
+            "Package database": "No database errors found",
+            "Orphan packages": "unused-package",
+        }
+    )
+
+    assert result.findings[0].code == "PKG002"
