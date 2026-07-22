@@ -215,6 +215,39 @@ def calculate(data: dict[str, str]) -> HealthScore:
             ),
             penalty=10,
         )
+    network_manager = data.get("Service NetworkManager", "unknown").strip().lower()
+
+    if network_manager not in {"active", "unknown"}:
+        result.add_finding(
+            code="SVC001",
+            severity=Severity.CRITICAL,
+            message="NetworkManager is not active.",
+            recommendation=(
+                "Inspect NetworkManager with: systemctl status NetworkManager; "
+                "then enable it with: sudo systemctl enable --now NetworkManager"
+            ),
+            penalty=15,
+        )
+
+    chrony = data.get("Service Chrony", "unknown").strip().lower()
+    timesyncd = data.get("Service Systemd timesync", "unknown").strip().lower()
+
+    known_time_services = {
+        state
+        for state in (chrony, timesyncd)
+        if state not in {"unknown", "unit chronyd.service could not be found."}
+    }
+
+    if known_time_services and "active" not in known_time_services:
+        result.add_finding(
+            code="SVC002",
+            severity=Severity.WARNING,
+            message="No supported time-synchronization service is active.",
+            recommendation=(
+                "Enable chronyd or systemd-timesyncd to keep the system clock accurate."
+            ),
+            penalty=5,
+        )
 
     journal = data.get("High-priority errors from this boot", "None")
     errors = relevant_journal_errors(journal)
