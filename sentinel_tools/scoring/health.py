@@ -191,6 +191,21 @@ def journal_recommendation(errors: list[str]) -> str:
     return "Review relevant boot errors with: journalctl -b -p err"
 
 
+def root_filesystem_usage(filesystem_data: str) -> int | None:
+    for line in filesystem_data.splitlines():
+        stripped = line.strip()
+
+        if not stripped or stripped.lower().startswith("filesystem"):
+            continue
+
+        match = re.search(r"\s(\d+)%\s+/\s*$", stripped)
+
+        if match:
+            return int(match.group(1))
+
+    return None
+
+
 def calculate(data: dict[str, str]) -> HealthScore:
     result = HealthScore()
 
@@ -283,6 +298,33 @@ def calculate(data: dict[str, str]) -> HealthScore:
             message="Orphan packages are installed.",
             recommendation="Review orphan packages with: pacman -Qtdq",
             penalty=5,
+        )
+    filesystem_data = data.get("Filesystem usage", "")
+    root_usage = root_filesystem_usage(filesystem_data)
+
+    if root_usage is not None and root_usage >= 95:
+        result.add_finding(
+            code="STR001",
+            severity=Severity.CRITICAL,
+            message=f"The root filesystem is critically full at {root_usage}%.",
+            recommendation=(
+                "Free disk space immediately. Review usage with: "
+                "sudo du -xhd1 / | sort -h; "
+                "and inspect package caches, logs, downloads, and old snapshots."
+            ),
+            penalty=20,
+        )
+    elif root_usage is not None and root_usage >= 85:
+        result.add_finding(
+            code="STR002",
+            severity=Severity.WARNING,
+            message=f"The root filesystem usage is high at {root_usage}%.",
+            recommendation=(
+                "Review root filesystem usage with: "
+                "sudo du -xhd1 / | sort -h; "
+                "then remove unnecessary files before space becomes critical."
+            ),
+            penalty=10,
         )
 
     result.score = max(0, min(100, result.score))
