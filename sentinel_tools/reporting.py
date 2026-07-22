@@ -9,7 +9,7 @@ from typing import Any
 from sentinel_tools import __version__
 from sentinel_tools.checks import network, security, storage, system
 from sentinel_tools.redaction import redact_report, redact_sections
-from sentinel_tools.scoring.health import calculate
+from sentinel_tools.scoring.health import Finding, calculate
 
 
 def collect_sections() -> dict[str, dict[str, str]]:
@@ -21,11 +21,68 @@ def collect_sections() -> dict[str, dict[str, str]]:
     }
 
 
+def build_system_summary(system_data: dict[str, str]) -> dict[str, str]:
+    summary_keys = (
+        "Hostname",
+        "Operating System",
+        "Kernel",
+        "Architecture",
+        "Desktop",
+        "CPU",
+        "Memory",
+        "Python",
+        "Python executable",
+        "KDE Plasma",
+    )
+
+    return {
+        key: system_data[key]
+        for key in summary_keys
+        if key in system_data and system_data[key].strip()
+    }
+
+
+def filter_findings(
+    findings: list[Finding],
+    *,
+    severity: str | None = None,
+    finding_code: str | None = None,
+) -> list[Finding]:
+    selected = findings
+
+    if severity is not None:
+        normalized_severity = severity.strip().lower()
+        selected = [
+            finding
+            for finding in selected
+            if finding.severity.value == normalized_severity
+        ]
+
+    if finding_code is not None:
+        normalized_code = finding_code.strip().upper()
+        selected = [
+            finding for finding in selected if finding.code.upper() == normalized_code
+        ]
+
+    return selected
+
+
 def build_report(
     sections: dict[str, dict[str, str]] | None = None,
+    *,
+    severity: str | None = None,
+    finding_code: str | None = None,
 ) -> dict[str, Any]:
     report_sections = sections if sections is not None else collect_sections()
     health = calculate(report_sections["system"])
+
+    findings = filter_findings(
+        health.findings,
+        severity=severity,
+        finding_code=finding_code,
+    )
+
+    system_summary = build_system_summary(report_sections["system"])
 
     return {
         "application": {
@@ -33,6 +90,7 @@ def build_report(
             "version": __version__,
         },
         "generated_at": datetime.now().astimezone().isoformat(),
+        "system_summary": system_summary,
         "health": {
             "score": health.score,
             "status": health.status,
@@ -43,7 +101,7 @@ def build_report(
                     "message": finding.message,
                     "recommendation": finding.recommendation,
                 }
-                for finding in health.findings
+                for finding in findings
             ],
         },
         "diagnostics": report_sections,
@@ -55,12 +113,19 @@ def save_text(
     sections: dict[str, dict[str, str]] | None = None,
     *,
     redact: bool = False,
+    severity: str | None = None,
+    finding_code: str | None = None,
 ) -> Path:
     report_sections = sections if sections is not None else collect_sections()
 
     if redact:
         report_sections = redact_sections(report_sections)
     health = calculate(report_sections["system"])
+    findings = filter_findings(
+        health.findings,
+        severity=severity,
+        finding_code=finding_code,
+    )
 
     lines = [
         "SENTINEL TOOLS SYSTEM REPORT",
@@ -69,14 +134,21 @@ def save_text(
         f"Health status: {health.status}",
     ]
 
-    if health.findings:
+    if findings:
         lines.extend(["", "HEALTH FINDINGS"])
-        for finding in health.findings:
+        for finding in findings:
             lines.append(
                 f"[{finding.code}][{finding.severity.value.upper()}] {finding.message}"
             )
             lines.append(f"Recommendation: {finding.recommendation}")
-
+    elif severity is not None or finding_code is not None:
+        lines.extend(
+            [
+                "",
+                "HEALTH FINDINGS",
+                "No findings matched the selected filters.",
+            ]
+        )
     for title, values in report_sections.items():
         lines.extend(["", "=" * 72, title.upper(), "=" * 72])
         for key, value in values.items():
@@ -91,8 +163,14 @@ def save_json(
     sections: dict[str, dict[str, str]] | None = None,
     *,
     redact: bool = False,
+    severity: str | None = None,
+    finding_code: str | None = None,
 ) -> Path:
-    report = build_report(sections)
+    report = build_report(
+        sections,
+        severity=severity,
+        finding_code=finding_code,
+    )
 
     if redact:
         report = redact_report(report)
@@ -108,9 +186,14 @@ def save_html(
     sections: dict[str, dict[str, str]] | None = None,
     *,
     redact: bool = False,
+    severity: str | None = None,
+    finding_code: str | None = None,
 ) -> Path:
-    report = build_report(sections)
-
+    report = build_report(
+        sections,
+        severity=severity,
+        finding_code=finding_code,
+    )
     if redact:
         report = redact_report(report)
 

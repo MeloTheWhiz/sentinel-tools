@@ -116,6 +116,16 @@ def main() -> None:
         action="store_true",
         help="Mask sensitive information in the report.",
     )
+    report_parser.add_argument(
+        "--severity",
+        choices=("info", "warning", "critical"),
+        help="Include only findings with this severity.",
+    )
+    report_parser.add_argument(
+        "--finding-code",
+        type=str.upper,
+        help="Include only the specified finding code, such as JRN001.",
+    )
 
     args = parser.parse_args()
     command = args.command or "menu"
@@ -149,11 +159,32 @@ def main() -> None:
         output.parent.mkdir(parents=True, exist_ok=True)
 
         if args.format == "json":
-            print(save_json(output, redact=args.redact))
+            print(
+                save_json(
+                    output,
+                    redact=args.redact,
+                    severity=args.severity,
+                    finding_code=args.finding_code,
+                )
+            )
         elif args.format == "html":
-            print(save_html(output, redact=args.redact))
+            print(
+                save_html(
+                    output,
+                    redact=args.redact,
+                    severity=args.severity,
+                    finding_code=args.finding_code,
+                )
+            )
         else:
-            print(save_text(output, redact=args.redact))
+            print(
+                save_text(
+                    output,
+                    redact=args.redact,
+                    severity=args.severity,
+                    finding_code=args.finding_code,
+                )
+            )
 
 
 if __name__ == "__main__":
