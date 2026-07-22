@@ -3,6 +3,7 @@ from sentinel_tools.scoring.health import (
     calculate,
     journal_recommendation,
     relevant_journal_errors,
+    root_filesystem_usage,
 )
 
 
@@ -289,3 +290,77 @@ def test_missing_service_data_does_not_create_findings() -> None:
     result = calculate(healthy_data())
 
     assert all(not finding.code.startswith("SVC") for finding in result.findings)
+
+
+def test_root_filesystem_usage_is_parsed() -> None:
+    filesystem_data = """\
+Filesystem     Type  Size  Used Avail Use% Mounted on
+/dev/sda2      ext4  100G   91G  9.0G  91% /
+/dev/sda1      vfat  1.0G  100M  924M  10% /boot
+"""
+
+    assert root_filesystem_usage(filesystem_data) == 91
+
+
+def test_root_filesystem_parser_ignores_other_mounts() -> None:
+    filesystem_data = """\
+Filesystem     Type  Size  Used Avail Use% Mounted on
+/dev/sda2      ext4  100G   40G   60G  40% /
+/dev/sdb1      ext4  500G  490G   10G  98% /mnt/storage
+"""
+
+    assert root_filesystem_usage(filesystem_data) == 40
+
+
+def test_root_filesystem_parser_returns_none_for_invalid_data() -> None:
+    assert root_filesystem_usage("Filesystem information unavailable") is None
+
+
+def test_critical_root_usage_uses_str001() -> None:
+    data = healthy_data()
+    data["Filesystem usage"] = """\
+Filesystem     Type  Size  Used Avail Use% Mounted on
+/dev/sda2      ext4  100G   96G  4.0G  96% /
+"""
+
+    result = calculate(data)
+
+    finding = next(finding for finding in result.findings if finding.code == "STR001")
+
+    assert finding.severity is Severity.CRITICAL
+    assert "96%" in finding.message
+    assert result.score == 80
+
+
+def test_high_root_usage_uses_str002() -> None:
+    data = healthy_data()
+    data["Filesystem usage"] = """\
+Filesystem     Type  Size  Used Avail Use% Mounted on
+/dev/sda2      ext4  100G   89G   11G  89% /
+"""
+
+    result = calculate(data)
+
+    finding = next(finding for finding in result.findings if finding.code == "STR002")
+
+    assert finding.severity is Severity.WARNING
+    assert "89%" in finding.message
+    assert result.score == 90
+
+
+def test_healthy_root_usage_creates_no_storage_finding() -> None:
+    data = healthy_data()
+    data["Filesystem usage"] = """\
+Filesystem     Type  Size  Used Avail Use% Mounted on
+/dev/sda2      ext4  100G   50G   50G  50% /
+"""
+
+    result = calculate(data)
+
+    assert all(not finding.code.startswith("STR") for finding in result.findings)
+
+
+def test_missing_filesystem_data_creates_no_storage_finding() -> None:
+    result = calculate(healthy_data())
+
+    assert all(not finding.code.startswith("STR") for finding in result.findings)
