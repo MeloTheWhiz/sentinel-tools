@@ -241,3 +241,51 @@ def test_orphan_packages_use_pkg002() -> None:
     )
 
     assert result.findings[0].code == "PKG002"
+
+
+def test_inactive_networkmanager_uses_svc001() -> None:
+    data = healthy_data()
+    data["Service NetworkManager"] = "inactive"
+
+    result = calculate(data)
+
+    assert result.findings[0].code == "SVC001"
+    assert result.findings[0].severity is Severity.CRITICAL
+    assert result.score == 85
+
+
+def test_active_networkmanager_creates_no_finding() -> None:
+    data = healthy_data()
+    data["Service NetworkManager"] = "active"
+
+    result = calculate(data)
+
+    assert result.findings == []
+
+
+def test_inactive_time_services_use_svc002() -> None:
+    data = healthy_data()
+    data["Service Chrony"] = "inactive"
+    data["Service Systemd timesync"] = "inactive"
+
+    result = calculate(data)
+
+    assert result.findings[0].code == "SVC002"
+    assert result.findings[0].severity is Severity.WARNING
+    assert result.score == 95
+
+
+def test_active_chrony_satisfies_time_sync_check() -> None:
+    data = healthy_data()
+    data["Service Chrony"] = "active"
+    data["Service Systemd timesync"] = "inactive"
+
+    result = calculate(data)
+
+    assert result.findings == []
+
+
+def test_missing_service_data_does_not_create_findings() -> None:
+    result = calculate(healthy_data())
+
+    assert all(not finding.code.startswith("SVC") for finding in result.findings)
