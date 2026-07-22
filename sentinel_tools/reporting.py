@@ -21,18 +21,34 @@ def collect_sections() -> dict[str, dict[str, str]]:
     }
 
 
+def build_system_summary(system_data: dict[str, str]) -> dict[str, str]:
+    summary_keys = (
+        "Hostname",
+        "Kernel",
+        "Architecture",
+        "KDE Plasma",
+    )
+
+    return {
+        key: system_data[key]
+        for key in summary_keys
+        if key in system_data and system_data[key].strip()
+    }
+
+
 def build_report(
     sections: dict[str, dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     report_sections = sections if sections is not None else collect_sections()
     health = calculate(report_sections["system"])
-
+    system_summary = build_system_summary(report_sections["system"])
     return {
         "application": {
             "name": "Sentinel Tools",
             "version": __version__,
         },
         "generated_at": datetime.now().astimezone().isoformat(),
+        "system_summary": system_summary,
         "health": {
             "score": health.score,
             "status": health.status,
@@ -61,14 +77,25 @@ def save_text(
     if redact:
         report_sections = redact_sections(report_sections)
     health = calculate(report_sections["system"])
+    system_summary = build_system_summary(report_sections["system"])
 
     lines = [
         "SENTINEL TOOLS SYSTEM REPORT",
         f"Generated: {datetime.now().astimezone().isoformat()}",
-        f"Health score: {health.score}/100",
-        f"Health status: {health.status}",
+        "",
+        "SYSTEM SUMMARY",
     ]
 
+    for key, value in system_summary.items():
+        lines.append(f"{key}: {value}")
+
+    lines.extend(
+        [
+            "",
+            f"Health score: {health.score}/100",
+            f"Health status: {health.status}",
+        ]
+    )
     if health.findings:
         lines.extend(["", "HEALTH FINDINGS"])
         for finding in health.findings:
@@ -115,8 +142,16 @@ def save_html(
         report = redact_report(report)
 
     application = report["application"]
+    system_summary = report["system_summary"]
     health = report["health"]
     diagnostics = report["diagnostics"]
+
+    summary_rows = []
+
+    for key, value in system_summary.items():
+        summary_rows.append(
+            f"<tr><th>{escape(str(key))}</th><td>{escape(str(value))}</td></tr>"
+        )
 
     findings = []
 
@@ -272,6 +307,15 @@ Generated: {escape(str(report["generated_at"]))}
 <span>Health status</span>
 </div>
 </div>
+
+</div>
+
+<section>
+<h2>System Summary</h2>
+<table><tbody>
+{"".join(summary_rows)}
+</tbody></table>
+</section>
 
 <section>
 <h2>Health Findings</h2>
