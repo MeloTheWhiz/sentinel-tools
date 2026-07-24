@@ -138,28 +138,10 @@ def main() -> None:
 
     parser = build_parser()
     args = parser.parse_args()
-    command = args.command or "menu"
 
-    if command == "menu":
-        menu()
-    elif command == "health":
-        run_health_check()
-    elif command == "update":
-        raise SystemExit(update())
-    elif command == "clean":
-        raise SystemExit(clean())
-    elif command in DIAGNOSTIC_TITLES:
-        run_diagnostic(command)
-    elif command == "report":
-        print(
-            save_report(
-                report_format=args.format,
-                output=args.output,
-                redact=args.redact,
-                severity=args.severity,
-                finding_code=args.finding_code,
-            )
-        )
+    from sentinel_tools.app import SentinelApp
+
+    SentinelApp().run(args)
 
 
 if __name__ == "__main__":

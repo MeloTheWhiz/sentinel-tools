@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from sentinel_tools import cli
 
+import argparse
+from argparse import Namespace
+
 
 def test_run_diagnostic_uses_engine(
     monkeypatch,
@@ -170,3 +173,32 @@ def test_report_parser_accepts_options() -> None:
     assert args.redact is True
     assert args.severity == "warning"
     assert args.finding_code == "NET001"
+
+
+def test_main_delegates_to_sentinel_app(monkeypatch) -> None:
+    calls: list[object] = []
+
+    args = Namespace(command="health")
+
+    class FakeSentinelApp:
+        def run(self, received_args) -> None:
+            calls.append(received_args)
+
+    monkeypatch.setattr(cli, "ensure_arch", lambda: None)
+    monkeypatch.setattr(
+        argparse.ArgumentParser,
+        "parse_args",
+        lambda self: args,
+    )
+
+    import sentinel_tools.app
+
+    monkeypatch.setattr(
+        sentinel_tools.app,
+        "SentinelApp",
+        FakeSentinelApp,
+    )
+
+    cli.main()
+
+    assert calls == [args]
