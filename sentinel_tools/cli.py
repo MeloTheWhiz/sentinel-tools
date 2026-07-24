@@ -99,9 +99,7 @@ def main() -> None:
         "health",
         "update",
         "clean",
-        "security",
-        "network",
-        "storage",
+        *DIAGNOSTIC_TITLES,
     ):
         sub.add_parser(command)
 
