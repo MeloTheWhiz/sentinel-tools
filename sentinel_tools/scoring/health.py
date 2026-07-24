@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from enum import StrEnum
+
+from sentinel_tools.models import Issue, Severity
 
 IGNORED_JOURNAL_PATTERNS = (
     "tdx not supported by the host platform",
@@ -34,25 +35,13 @@ JOURNAL_PREFIX_PATTERN = re.compile(
 
 PROCESS_ID_PATTERN = re.compile(r"\[\d+\]")
 
-
-class Severity(StrEnum):
-    INFO = "info"
-    WARNING = "warning"
-    CRITICAL = "critical"
-
-
-@dataclass(frozen=True)
-class Finding:
-    code: str
-    severity: Severity
-    message: str
-    recommendation: str
+Finding = Issue
 
 
 @dataclass
 class HealthScore:
     score: int = 100
-    findings: list[Finding] = field(default_factory=list)
+    findings: list[Issue] = field(default_factory=list)
 
     @property
     def status(self) -> str:
@@ -82,7 +71,7 @@ class HealthScore:
         penalty: int,
     ) -> None:
         self.findings.append(
-            Finding(
+            Issue(
                 code=code,
                 severity=severity,
                 message=message,
