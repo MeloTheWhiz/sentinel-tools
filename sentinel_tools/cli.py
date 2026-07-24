@@ -9,7 +9,7 @@ from sentinel_tools.config.loader import load_config
 from sentinel_tools.core import ensure_arch, header
 from sentinel_tools.logging.setup import configure_logging
 from sentinel_tools.maintenance import clean, update
-from sentinel_tools.reporting import save_html, save_json, save_text
+from sentinel_tools.reports.service import save_report
 from sentinel_tools.scoring.health import calculate
 
 
@@ -59,7 +59,7 @@ def menu() -> None:
         ),
         "7": (
             "Save report",
-            lambda: print(save_text(Path.home() / "sentinel-tools-report.txt")),
+            lambda: print(save_report(report_format="text")),
         ),
     }
 
@@ -147,44 +147,15 @@ def main() -> None:
     elif command == "storage":
         show("STORAGE DIAGNOSTICS", storage.collect())
     elif command == "report":
-        if args.output:
-            output = args.output.expanduser()
-        elif args.format == "json":
-            output = Path.home() / "sentinel-tools-report.json"
-        elif args.format == "html":
-            output = Path.home() / "sentinel-tools-report.html"
-        else:
-            output = Path.home() / "sentinel-tools-report.txt"
-
-        output.parent.mkdir(parents=True, exist_ok=True)
-
-        if args.format == "json":
-            print(
-                save_json(
-                    output,
-                    redact=args.redact,
-                    severity=args.severity,
-                    finding_code=args.finding_code,
-                )
+        print(
+            save_report(
+                report_format=args.format,
+                output=args.output,
+                redact=args.redact,
+                severity=args.severity,
+                finding_code=args.finding_code,
             )
-        elif args.format == "html":
-            print(
-                save_html(
-                    output,
-                    redact=args.redact,
-                    severity=args.severity,
-                    finding_code=args.finding_code,
-                )
-            )
-        else:
-            print(
-                save_text(
-                    output,
-                    redact=args.redact,
-                    severity=args.severity,
-                    finding_code=args.finding_code,
-                )
-            )
+        )
 
 
 if __name__ == "__main__":
