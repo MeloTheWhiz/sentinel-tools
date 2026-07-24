@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import pytest
 
-from sentinel_tools.engine import CHECKS, available_checks, run_all, run_check
+from sentinel_tools import engine
 
 
-def test_available_checks_contains_builtin_checks() -> None:
-    assert available_checks() == (
+def test_available_checks() -> None:
+    assert engine.available_checks() == (
         "system",
         "network",
         "storage",
@@ -12,56 +14,86 @@ def test_available_checks_contains_builtin_checks() -> None:
     )
 
 
-def test_run_check_uses_registered_collector(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setitem(
-        CHECKS,
-        "example",
-        lambda: {"Status": "OK"},
-    )
+def test_run_check_returns_dict() -> None:
+    result = engine.run_check("system")
 
-    result = run_check("example")
-
-    assert result == {"Status": "OK"}
+    assert isinstance(result, dict)
 
 
-def test_run_check_normalizes_name(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setitem(
-        CHECKS,
-        "example",
-        lambda: {"Status": "OK"},
-    )
+def test_run_check_is_case_insensitive() -> None:
+    registry = engine.CheckRegistry()
+    calls: list[str] = []
 
-    result = run_check("  EXAMPLE  ")
+    def collector() -> dict[str, str]:
+        calls.append("called")
+        return {"status": "ok"}
 
-    assert result == {"Status": "OK"}
+    registry.register("system", collector)
+
+    assert registry.run("SYSTEM") == {"status": "ok"}
+    assert calls == ["called"]
 
 
-def test_run_check_rejects_unknown_check() -> None:
+def test_run_check_unknown() -> None:
     with pytest.raises(ValueError, match="Unknown diagnostic check"):
-        run_check("missing")
+        engine.run_check("does-not-exist")
 
 
-def test_run_all_runs_selected_checks(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setitem(
-        CHECKS,
-        "first",
-        lambda: {"Result": "One"},
+def test_run_all_runs_everything() -> None:
+    result = engine.run_all()
+
+    assert set(result) == {
+        "system",
+        "network",
+        "storage",
+        "security",
+    }
+
+
+def test_run_all_selected_checks() -> None:
+    result = engine.run_all(["system", "network"])
+
+    assert set(result) == {
+        "system",
+        "network",
+    }
+
+
+def test_registry_registers_and_runs_check() -> None:
+    registry = engine.CheckRegistry()
+
+    registry.register(
+        "Example",
+        lambda: {"status": "ok"},
     )
-    monkeypatch.setitem(
-        CHECKS,
-        "second",
-        lambda: {"Result": "Two"},
-    )
 
-    result = run_all(("first", "second"))
+    assert registry.available() == ("example",)
+    assert registry.run("EXAMPLE") == {"status": "ok"}
 
-    assert result == {
-        "first": {"Result": "One"},
-        "second": {"Result": "Two"},
+
+def test_registry_rejects_empty_name() -> None:
+    registry = engine.CheckRegistry()
+
+    with pytest.raises(ValueError, match="cannot be empty"):
+        registry.register("   ", lambda: {})
+
+
+def test_registry_replaces_existing_check() -> None:
+    registry = engine.CheckRegistry()
+
+    registry.register("example", lambda: {"value": "first"})
+    registry.register("example", lambda: {"value": "second"})
+
+    assert registry.available() == ("example",)
+    assert registry.run("example") == {"value": "second"}
+
+
+def test_registry_runs_selected_checks() -> None:
+    registry = engine.CheckRegistry()
+
+    registry.register("first", lambda: {"value": "1"})
+    registry.register("second", lambda: {"value": "2"})
+
+    assert registry.run_all(["SECOND"]) == {
+        "second": {"value": "2"},
     }
