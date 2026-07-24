@@ -16,7 +16,7 @@ def test_app_runs_health_command(monkeypatch) -> None:
         lambda: calls.append("health"),
     )
 
-    sentinel = app.SentinelApp()
+    sentinel = app.SentinelApp(config={})
     sentinel.run(Namespace(command="health"))
 
     assert calls == ["health"]
@@ -31,7 +31,7 @@ def test_app_runs_diagnostic_command(monkeypatch) -> None:
         lambda command: calls.append(command),
     )
 
-    sentinel = app.SentinelApp()
+    sentinel = app.SentinelApp(config={})
     sentinel.run(Namespace(command="network"))
 
     assert calls == ["network"]
@@ -55,7 +55,7 @@ def test_app_runs_report_command(monkeypatch, capsys) -> None:
         finding_code="NET001",
     )
 
-    sentinel = app.SentinelApp()
+    sentinel = app.SentinelApp(config={})
     sentinel.run(args)
 
     output = capsys.readouterr().out
@@ -86,9 +86,43 @@ def test_app_raises_exit_for_maintenance(
 ) -> None:
     monkeypatch.setattr(app, function_name, lambda: 0)
 
-    sentinel = app.SentinelApp()
+    sentinel = app.SentinelApp(config={})
 
     with pytest.raises(SystemExit) as error:
         sentinel.run(Namespace(command=command))
 
     assert error.value.code == 0
+
+
+def test_app_loads_configured_plugins_once(monkeypatch) -> None:
+    calls: list[tuple[tuple[str, ...], object]] = []
+
+    def fake_load_plugins(module_names, registry) -> tuple[object, ...]:
+        calls.append((tuple(module_names), registry))
+        return ()
+
+    monkeypatch.setattr(app, "load_plugins", fake_load_plugins)
+
+    sentinel = app.SentinelApp(
+        config={
+            "plugins": {
+                "modules": [
+                    "sentinel_example",
+                    "sentinel_extra",
+                ]
+            }
+        }
+    )
+
+    sentinel.initialize_plugins()
+    sentinel.initialize_plugins()
+
+    assert calls == [
+        (
+            (
+                "sentinel_example",
+                "sentinel_extra",
+            ),
+            app.registry,
+        )
+    ]
