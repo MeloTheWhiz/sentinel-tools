@@ -214,4 +214,4 @@ GitHub: [MeloTheWhiz](https://github.com/MeloTheWhiz)
 
 ## License
 
-A project license will be added before the first public release.
+Sentinel Tools is released under the [MIT License](LICENSE).
