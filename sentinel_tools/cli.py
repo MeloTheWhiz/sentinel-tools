@@ -12,6 +12,12 @@ from sentinel_tools.maintenance import clean, update
 from sentinel_tools.reports.service import save_report
 from sentinel_tools.scoring.health import calculate
 
+DIAGNOSTIC_TITLES = {
+    "security": "SECURITY AUDIT",
+    "network": "NETWORK DIAGNOSTICS",
+    "storage": "STORAGE DIAGNOSTICS",
+}
+
 
 def show(title: str, data: dict) -> None:
     header(title)
@@ -43,23 +49,18 @@ def run_health_check() -> None:
     show_health_score(data)
 
 
+def run_diagnostic(command: str) -> None:
+    show(DIAGNOSTIC_TITLES[command], run_check(command))
+
+
 def menu() -> None:
     actions = {
         "1": ("Update system", update),
         "2": ("Clean system", clean),
         "3": ("System health", run_health_check),
-        "4": (
-            "Security audit",
-            lambda: show("SECURITY AUDIT", run_check("security")),
-        ),
-        "5": (
-            "Network diagnostics",
-            lambda: show("NETWORK DIAGNOSTICS", run_check("network")),
-        ),
-        "6": (
-            "Storage diagnostics",
-            lambda: show("STORAGE DIAGNOSTICS", run_check("storage")),
-        ),
+        "4": ("Security audit", lambda: run_diagnostic("security")),
+        "5": ("Network diagnostics", lambda: run_diagnostic("network")),
+        "6": ("Storage diagnostics", lambda: run_diagnostic("storage")),
         "7": (
             "Save report",
             lambda: print(save_report(report_format="text")),
@@ -141,12 +142,8 @@ def main() -> None:
         raise SystemExit(update())
     elif command == "clean":
         raise SystemExit(clean())
-    elif command == "security":
-        show("SECURITY AUDIT", run_check("security"))
-    elif command == "network":
-        show("NETWORK DIAGNOSTICS", run_check("network"))
-    elif command == "storage":
-        show("STORAGE DIAGNOSTICS", run_check("storage"))
+    elif command in DIAGNOSTIC_TITLES:
+        run_diagnostic(command)
     elif command == "report":
         print(
             save_report(
