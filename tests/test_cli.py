@@ -132,3 +132,41 @@ def test_storage_command_uses_engine(
     assert "STORAGE DIAGNOSTICS" in output
     assert "Filesystem:" in output
     assert "Healthy" in output
+
+
+def test_build_parser_contains_expected_commands() -> None:
+    parser = cli.build_parser()
+
+    choices = parser._subparsers._group_actions[0].choices
+
+    assert "menu" in choices
+    assert "health" in choices
+    assert "update" in choices
+    assert "clean" in choices
+    assert "security" in choices
+    assert "network" in choices
+    assert "storage" in choices
+    assert "report" in choices
+
+
+def test_report_parser_accepts_options() -> None:
+    parser = cli.build_parser()
+
+    args = parser.parse_args(
+        [
+            "report",
+            "--format",
+            "json",
+            "--redact",
+            "--severity",
+            "warning",
+            "--finding-code",
+            "NET001",
+        ]
+    )
+
+    assert args.command == "report"
+    assert args.format == "json"
+    assert args.redact is True
+    assert args.severity == "warning"
+    assert args.finding_code == "NET001"
