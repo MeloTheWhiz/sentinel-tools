@@ -7,18 +7,13 @@ from pathlib import Path
 from typing import Any
 
 from sentinel_tools import __version__
-from sentinel_tools.checks import network, security, storage, system
+from sentinel_tools.engine import run_all
 from sentinel_tools.redaction import redact_report, redact_sections
 from sentinel_tools.scoring.health import Finding, calculate
 
 
 def collect_sections() -> dict[str, dict[str, str]]:
-    return {
-        "system": system.collect(),
-        "network": network.collect(),
-        "storage": storage.collect(),
-        "security": security.collect(),
-    }
+    return run_all()
 
 
 def build_system_summary(system_data: dict[str, str]) -> dict[str, str]:
