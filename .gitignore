@@ -13,5 +13,8 @@ sentinel-tools-report.json
 # Local safety backups
 backups/
 
-# Generated reports
+# Generated Sentinel reports
 sentinel-report.html
+report.html
+report.json
+report.txt
