@@ -100,31 +100,48 @@ def normalize_journal_line(line: str) -> str:
 
 
 def relevant_journal_errors(journal: str) -> list[str]:
-    if journal.strip().lower() == "none":
+    """Return unique journal events after removing expected noise."""
+    if not journal.strip() or journal.strip().lower() == "none":
         return []
 
     relevant: list[str] = []
     seen: set[str] = set()
+    current_event: list[str] = []
 
-    for line in journal.splitlines():
-        stripped = line.strip()
+    def save_current_event() -> None:
+        if not current_event:
+            return
 
-        if not stripped:
-            continue
-
-        lowered = stripped.lower()
+        first_line = current_event[0].strip()
+        lowered = first_line.lower()
 
         if any(pattern in lowered for pattern in IGNORED_JOURNAL_PATTERNS):
-            continue
+            current_event.clear()
+            return
 
-        normalized = normalize_journal_line(stripped)
+        normalized = normalize_journal_line(first_line)
         key = normalized.lower()
 
-        if key in seen:
+        if key and key not in seen:
+            seen.add(key)
+            relevant.append(first_line)
+
+        current_event.clear()
+
+    for line in journal.splitlines():
+        if not line.strip():
             continue
 
-        seen.add(key)
-        relevant.append(stripped)
+        is_continuation = line[:1].isspace()
+
+        if is_continuation and current_event:
+            current_event.append(line)
+            continue
+
+        save_current_event()
+        current_event.append(line)
+
+    save_current_event()
 
     return relevant
 

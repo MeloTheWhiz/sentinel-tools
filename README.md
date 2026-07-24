@@ -1,217 +1,187 @@
 # Sentinel Tools
 
-<div align="center">
+Sentinel Tools is a command-line toolkit for **safe Arch Linux maintenance, system diagnostics, health scoring, and shareable reports**.
 
-## Cross-Platform System Diagnostics & Health Assessment Toolkit
-
-Professional system inspection, health scoring, diagnostics, and reporting.
-
-**Current Status:** 🚧 Early Alpha (v0.2.0-alpha)
-
-</div>
-
----
-
-## Overview
-
-Sentinel Tools is a Python-based system diagnostics and health assessment toolkit designed to help users, IT professionals, consultants, and system administrators better understand the health of their systems.
-
-Rather than simply displaying raw system information, Sentinel Tools analyzes collected data, identifies potential issues, assigns a health score, and produces professional reports with actionable recommendations.
-
-The project is being developed with a long-term goal of supporting multiple operating systems while maintaining a modular architecture.
-
----
-
-## Current Platform
-
-✅ Arch Linux
-
-Future support:
-
-- Ubuntu
-- Debian
-- Fedora
-- openSUSE
-- Windows
-- macOS
-- FreeBSD
-
----
+> **Alpha software:** Sentinel Tools 0.1.x currently supports Arch Linux only. Windows, macOS, additional Linux distributions, and FreeBSD are planned. Test on non-critical systems and review reports before sharing them.
 
 ## Features
 
-## Health Assessment
+- System health diagnostics and a score from 0 to 100
+- Security, network, and storage checks
+- Text, JSON, and HTML reports
+- Optional redaction of sensitive report data
+- Guided Arch Linux updates and cleanup
+- Plugin-based diagnostic checks
+- Interactive menu and direct CLI commands
 
-- Overall Health Score
-- Severity Levels
-- Stable Finding Codes
-- System Summary
+## Requirements
 
----
+- Arch Linux or an Arch-based distribution
+- Python 3.11 or newer
+- Git
+- `pipx` for the recommended tester installation
 
-## Diagnostics
+## Recommended installation for testers
 
-- Failed system services
-- Failed user services
-- Journal analysis
-- Package database verification
-- Orphan package detection
-- NetworkManager health
-- Time synchronization
-- Root filesystem usage
+`pipx` installs Sentinel Tools into an isolated environment. Testers do **not** need to create or manage a Python virtual environment.
 
----
+### 1. Install Git and pipx
 
-## Reporting
+```bash
+sudo pacman -S --needed git python-pipx
+pipx ensurepath
+```
 
-Generate:
+Close and reopen the terminal if requested.
 
-- Text reports
-- JSON reports
-- HTML reports
-
-Features include:
-
-- Report redaction
-- Severity filtering
-- Finding-code filtering
-
----
-
-## Installation
-
-Clone the repository:
+### 2. Clone the repository
 
 ```bash
 git clone https://github.com/MeloTheWhiz/sentinel-tools.git
 cd sentinel-tools
+git switch feature/v0.2-release-prep
 ```
 
-Create a virtual environment:
+Replace `USERNAME` with the repository owner's GitHub username.
+
+### 3. Install Sentinel Tools
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+pipx install .
 ```
 
-Install:
+Verify the installation:
 
 ```bash
-pip install -e .
-```
-
-Verify:
-
-```bash
+sentinel-tools --version
 sentinel-tools --help
 ```
 
----
-
-## Example Commands
-
-Health
+A shorter command is also installed:
 
 ```bash
-sentinel-tools health
+sentinel --help
 ```
 
-Storage
+## Quick start
 
 ```bash
+sentinel-tools menu
+sentinel-tools health
+sentinel-tools checks
+sentinel-tools security
+sentinel-tools network
 sentinel-tools storage
 ```
 
-Security
+## Reports
+
+Create a text report:
 
 ```bash
-sentinel-tools security
+sentinel-tools report
 ```
 
-Generate HTML report
+Create a redacted HTML report:
 
 ```bash
-sentinel-tools report \
-    --format html \
-    --output report.html
+sentinel-tools report --format html --redact
 ```
 
-Generate JSON report
+Choose a destination:
 
 ```bash
-sentinel-tools report \
-    --format json \
-    --output report.json
+sentinel-tools report --format json --redact --output ~/Documents/sentinel-report.json
 ```
 
-Generate Text report
+Filter findings:
 
 ```bash
-sentinel-tools report \
-    --format text \
-    --output report.txt
+sentinel-tools report --severity warning
+sentinel-tools report --finding-code JRN001
 ```
 
----
+Default reports are saved in the user's home directory:
 
-## Current Findings
+- `~/sentinel-tools-report.txt`
+- `~/sentinel-tools-report.json`
+- `~/sentinel-tools-report.html`
 
-| Code | Meaning |
-|------|---------|
-| SVC001 | NetworkManager inactive |
-| SVC002 | Time synchronization inactive |
-| STR001 | Root filesystem critical |
-| STR002 | Root filesystem warning |
+Review every report before posting it publicly, even when `--redact` is used.
 
----
-
-## Development
-
-Run tests
+## Maintenance commands
 
 ```bash
-pytest
+sentinel-tools update
+sentinel-tools clean
 ```
 
-Run Ruff
+Maintenance commands may request administrator access through `sudo`. Read each prompt before approving a change.
+
+## Updating a tester installation
+
+From the cloned repository:
 
 ```bash
-ruff check .
+git pull
+pipx reinstall sentinel-tools
+```
+
+## Uninstalling
+
+```bash
+pipx uninstall sentinel-tools
+```
+
+The configuration file may remain at:
+
+```text
+~/.config/sentinel-tools/config.toml
+```
+
+## Developer setup
+
+```bash
+git clone https://github.com/MeloTheWhiz/sentinel-tools.git
+cd sentinel-tools
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
+```
+
+Run validation:
+
+```bash
 ruff format --check .
+ruff check .
+pytest -q
 ```
 
----
+## Reporting test results
 
-## Roadmap
+Include the following in a GitHub issue:
 
-Upcoming work includes:
+- Sentinel Tools version: `sentinel-tools --version`
+- Distribution and kernel: `uname -a`
+- Desktop environment or window manager
+- Exact command used
+- Expected behavior
+- Actual behavior and full error output
+- A reviewed, redacted report when relevant
 
-- CPU diagnostics
-- Battery health
-- SMART improvements
-- Security scoring
-- Historical reports
-- HTML dashboard redesign
-- Cross-platform support
+Never post passwords, tokens, private keys, serial numbers, or an unreviewed report.
 
----
+## Platform status
 
-## Contributing
+| Platform | Status |
+|---|---|
+| Arch Linux | Alpha testing |
+| Other Linux distributions | Planned |
+| Windows | Planned |
+| macOS | Planned |
+| FreeBSD | Planned |
 
-The project is currently in active alpha development.
+## Safety
 
-Bug reports, suggestions, testing feedback, and pull requests are welcome.
-
----
-
-## Author
-
-**Carmelo A. Acevedo**
-
-GitHub: [MeloTheWhiz](https://github.com/MeloTheWhiz)
-
----
-
-## License
-
-Sentinel Tools is released under the [MIT License](LICENSE).
+Sentinel Tools prefers inspection and guided actions, but no diagnostic utility can guarantee that a system is secure or fault-free. Keep backups, review commands, and test alpha releases on systems where recovery is possible.

@@ -3,13 +3,12 @@ from __future__ import annotations
 import argparse
 from argparse import Namespace
 
+import pytest
+
 from sentinel_tools import cli
 
 
-def test_run_diagnostic_uses_engine(
-    monkeypatch,
-    capsys,
-) -> None:
+def test_run_diagnostic_uses_engine(monkeypatch, capsys) -> None:
     calls: list[str] = []
 
     def fake_run_check(name: str) -> dict[str, str]:
@@ -17,9 +16,7 @@ def test_run_diagnostic_uses_engine(
         return {"Firewall": "Active"}
 
     monkeypatch.setattr(cli, "run_check", fake_run_check)
-
     cli.run_diagnostic("security")
-
     output = capsys.readouterr().out
 
     assert calls == ["security"]
@@ -28,15 +25,8 @@ def test_run_diagnostic_uses_engine(
     assert "Active" in output
 
 
-def test_run_health_check_uses_engine(
-    monkeypatch,
-    capsys,
-) -> None:
-    system_data = {
-        "Operating System": "Arch Linux",
-        "Kernel": "Linux test",
-    }
-
+def test_run_health_check_uses_engine(monkeypatch, capsys) -> None:
+    system_data = {"Operating System": "Arch Linux", "Kernel": "Linux test"}
     monkeypatch.setattr(
         cli,
         "run_check",
@@ -45,7 +35,6 @@ def test_run_health_check_uses_engine(
     monkeypatch.setattr(cli, "show_health_score", lambda data: None)
 
     cli.run_health_check()
-
     output = capsys.readouterr().out
 
     assert "SYSTEM HEALTH" in output
@@ -53,108 +42,57 @@ def test_run_health_check_uses_engine(
     assert "Arch Linux" in output
 
 
-def test_security_command_uses_engine(
-    monkeypatch,
-    capsys,
+@pytest.mark.parametrize(
+    ("command", "title", "payload"),
+    [
+        ("security", "SECURITY AUDIT", {"Firewall": "Active"}),
+        ("network", "NETWORK DIAGNOSTICS", {"Connectivity": "Online"}),
+        ("storage", "STORAGE DIAGNOSTICS", {"Filesystem": "Healthy"}),
+    ],
+)
+def test_diagnostic_commands_use_engine(
+    command, title, payload, monkeypatch, capsys
 ) -> None:
     calls: list[str] = []
 
     def fake_run_check(name: str) -> dict[str, str]:
         calls.append(name)
-        return {"Firewall": "Active"}
+        return payload
 
     monkeypatch.setattr(cli, "run_check", fake_run_check)
     monkeypatch.setattr(cli, "ensure_arch", lambda: None)
     monkeypatch.setattr(
         cli.argparse.ArgumentParser,
         "parse_args",
-        lambda self: cli.argparse.Namespace(command="security"),
+        lambda self: cli.argparse.Namespace(command=command),
     )
 
     cli.main()
-
     output = capsys.readouterr().out
 
-    assert calls == ["security"]
-    assert "SECURITY AUDIT" in output
-    assert "Firewall:" in output
-    assert "Active" in output
-
-
-def test_network_command_uses_engine(
-    monkeypatch,
-    capsys,
-) -> None:
-    calls: list[str] = []
-
-    def fake_run_check(name: str) -> dict[str, str]:
-        calls.append(name)
-        return {"Connectivity": "Online"}
-
-    monkeypatch.setattr(cli, "run_check", fake_run_check)
-    monkeypatch.setattr(cli, "ensure_arch", lambda: None)
-    monkeypatch.setattr(
-        cli.argparse.ArgumentParser,
-        "parse_args",
-        lambda self: cli.argparse.Namespace(command="network"),
-    )
-
-    cli.main()
-
-    output = capsys.readouterr().out
-
-    assert calls == ["network"]
-    assert "NETWORK DIAGNOSTICS" in output
-    assert "Connectivity:" in output
-    assert "Online" in output
-
-
-def test_storage_command_uses_engine(
-    monkeypatch,
-    capsys,
-) -> None:
-    calls: list[str] = []
-
-    def fake_run_check(name: str) -> dict[str, str]:
-        calls.append(name)
-        return {"Filesystem": "Healthy"}
-
-    monkeypatch.setattr(cli, "run_check", fake_run_check)
-    monkeypatch.setattr(cli, "ensure_arch", lambda: None)
-    monkeypatch.setattr(
-        cli.argparse.ArgumentParser,
-        "parse_args",
-        lambda self: cli.argparse.Namespace(command="storage"),
-    )
-
-    cli.main()
-
-    output = capsys.readouterr().out
-
-    assert calls == ["storage"]
-    assert "STORAGE DIAGNOSTICS" in output
-    assert "Filesystem:" in output
-    assert "Healthy" in output
+    assert calls == [command]
+    assert title in output
 
 
 def test_build_parser_contains_expected_commands() -> None:
     parser = cli.build_parser()
-
     choices = parser._subparsers._group_actions[0].choices
 
-    assert "menu" in choices
-    assert "health" in choices
-    assert "update" in choices
-    assert "clean" in choices
-    assert "security" in choices
-    assert "network" in choices
-    assert "storage" in choices
-    assert "report" in choices
+    assert {
+        "menu",
+        "health",
+        "update",
+        "clean",
+        "security",
+        "network",
+        "storage",
+        "checks",
+        "report",
+    } <= set(choices)
 
 
 def test_report_parser_accepts_options() -> None:
     parser = cli.build_parser()
-
     args = parser.parse_args(
         [
             "report",
@@ -175,9 +113,21 @@ def test_report_parser_accepts_options() -> None:
     assert args.finding_code == "NET001"
 
 
+def test_help_is_available_without_platform_check(monkeypatch) -> None:
+    def fail_platform_check() -> None:
+        raise AssertionError("ensure_arch should not run for --help")
+
+    monkeypatch.setattr(cli, "ensure_arch", fail_platform_check)
+    monkeypatch.setattr("sys.argv", ["sentinel-tools", "--help"])
+
+    with pytest.raises(SystemExit) as error:
+        cli.main()
+
+    assert error.value.code == 0
+
+
 def test_main_delegates_to_sentinel_app(monkeypatch) -> None:
     calls: list[object] = []
-
     args = Namespace(command="health")
 
     class FakeSentinelApp:
@@ -193,12 +143,7 @@ def test_main_delegates_to_sentinel_app(monkeypatch) -> None:
 
     import sentinel_tools.app
 
-    monkeypatch.setattr(
-        sentinel_tools.app,
-        "SentinelApp",
-        FakeSentinelApp,
-    )
-
+    monkeypatch.setattr(sentinel_tools.app, "SentinelApp", FakeSentinelApp)
     cli.main()
 
     assert calls == [args]

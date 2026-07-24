@@ -9,10 +9,15 @@ description = "Safe Arch Linux maintenance and diagnostic toolkit"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{name = "Carmelo A. Acevedo"}]
+keywords = ["arch-linux", "diagnostics", "maintenance", "security", "system-health"]
 dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
 
 [project.scripts]
 sentinel-tools = "sentinel_tools.cli:main"
+sentinel = "sentinel_tools.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -4,48 +4,56 @@ import argparse
 from pathlib import Path
 
 from sentinel_tools import __version__
-from sentinel_tools.config.loader import load_config
-from sentinel_tools.core import ensure_arch, header
-from sentinel_tools.engine import run_check
+from sentinel_tools.core import ensure_arch
+from sentinel_tools.engine import available_checks, run_check
 from sentinel_tools.logging.setup import configure_logging
-from sentinel_tools.maintenance import clean, update
 from sentinel_tools.reports.service import save_report
 from sentinel_tools.scoring.health import calculate
+from sentinel_tools.ui.console import (
+    banner,
+    command_hint,
+    key_value,
+    section,
+    status,
+)
 
 DIAGNOSTIC_TITLES = {
-    "security": "SECURITY AUDIT",
-    "network": "NETWORK DIAGNOSTICS",
-    "storage": "STORAGE DIAGNOSTICS",
+    "security": "Security Audit",
+    "network": "Network Diagnostics",
+    "storage": "Storage Diagnostics",
 }
 
 
-def show(title: str, data: dict) -> None:
-    header(title)
+def show(title: str, data: dict[str, str]) -> None:
+    section(title)
+    if not data:
+        status("INFO", "No diagnostic data was returned.")
+        return
     for key, value in data.items():
-        print(f"\n{key}:")
-        print(value or "None")
+        key_value(key, value)
 
 
 def show_health_score(data: dict[str, str]) -> None:
     result = calculate(data)
+    section("Health Score")
+    key_value("Score", f"{result.score}/100")
+    key_value("Status", result.status)
+    section("Health Findings")
 
-    header("HEALTH SCORE")
-    print(f"Score: {result.score}/100")
-    print(f"Status: {result.status}")
+    if not result.findings:
+        status("OK", "No health findings detected.")
+        return
 
-    print("\nFindings:")
-    if result.findings:
-        for finding in result.findings:
-            label = finding.severity.value.upper()
-            print(f"[{finding.code}][{label}] {finding.message}")
-            print(f"  Recommendation: {finding.recommendation}")
-    else:
-        print("[OK] No health findings detected.")
+    for finding in result.findings:
+        severity = finding.severity.value.upper()
+        status("ERROR" if severity == "CRITICAL" else severity, finding.message)
+        print(f"  Code: {finding.code}")
+        print(f"  Recommendation: {finding.recommendation}")
 
 
 def run_health_check() -> None:
     data = run_check("system")
-    show("SYSTEM HEALTH", data)
+    show("System Health", data)
     show_health_score(data)
 
 
@@ -53,7 +61,28 @@ def run_diagnostic(command: str) -> None:
     show(DIAGNOSTIC_TITLES[command], run_check(command))
 
 
+def show_available_checks() -> None:
+    """Display all registered diagnostic checks."""
+    section("Available Checks")
+
+    commands = {
+        "system": ("health", "System Health"),
+        "network": ("network", "Network Diagnostics"),
+        "storage": ("storage", "Storage Diagnostics"),
+        "security": ("security", "Security Audit"),
+    }
+
+    for name in available_checks():
+        command, title = commands.get(
+            name,
+            (name, name.replace("_", " ").title()),
+        )
+        command_hint(f"sentinel-tools {command}", title)
+
+
 def menu() -> None:
+    from sentinel_tools.maintenance import clean, update
+
     actions = {
         "1": ("Update system", update),
         "2": ("Clean system", clean),
@@ -62,56 +91,102 @@ def menu() -> None:
         "5": ("Network diagnostics", lambda: run_diagnostic("network")),
         "6": ("Storage diagnostics", lambda: run_diagnostic("storage")),
         "7": (
-            "Save report",
-            lambda: print(save_report(report_format="text")),
+            "Save text report",
+            lambda: status(
+                "OK", f"Report saved to {save_report(report_format='text')}"
+            ),
         ),
     }
 
     while True:
-        header(f"SENTINEL TOOLS v{__version__}")
+        banner(__version__)
+        section("Interactive Menu")
         for key, (label, _) in actions.items():
-            print(f"[{key}] {label}")
-        print("[0] Exit")
-        choice = input("\nChoose an option: ").strip()
-        if choice == "0":
+            print(f"  [{key}] {label}")
+        print("  [0] Exit")
+
+        try:
+            choice = input("\nChoose an option: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            status("INFO", "Exiting Sentinel Tools.")
             return
+
+        if choice == "0":
+            status("INFO", "Exiting Sentinel Tools.")
+            return
+
         action = actions.get(choice)
-        if action:
-            action[1]()
+        if action is None:
+            status("WARN", "Invalid selection. Choose a listed menu number.")
+            continue
+
+        action[1]()
+        try:
             input("\nPress Enter to continue...")
-        else:
-            print("Invalid selection.")
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="sentinel-tools")
-    parser.add_argument("--version", action="version", version=__version__)
+    parser = argparse.ArgumentParser(
+        prog="sentinel-tools",
+        description=(
+            "Run Arch Linux diagnostics, create shareable reports, "
+            "and perform safe maintenance tasks."
+        ),
+        epilog=(
+            "Examples:\n"
+            "  sentinel-tools health\n"
+            "  sentinel-tools security\n"
+            "  sentinel-tools report --format html --redact\n"
+            "  sentinel-tools menu"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
+    )
 
-    sub = parser.add_subparsers(dest="command")
+    subparsers = parser.add_subparsers(
+        dest="command", metavar="COMMAND", title="commands"
+    )
+    subparsers.add_parser("menu", help="Open the interactive menu.")
+    subparsers.add_parser(
+        "health", help="Run the system health check and calculate a score."
+    )
+    subparsers.add_parser(
+        "security", help="Inspect firewall and security-related system state."
+    )
+    subparsers.add_parser(
+        "network", help="Inspect connectivity and network configuration."
+    )
+    subparsers.add_parser(
+        "storage", help="Inspect filesystems, disks, and storage usage."
+    )
+    subparsers.add_parser("checks", help="List registered diagnostic checks.")
+    subparsers.add_parser(
+        "update", help="Safely update Arch Linux and Flatpak packages."
+    )
+    subparsers.add_parser(
+        "clean", help="Perform guided package and filesystem cleanup."
+    )
 
-    for command in (
-        "menu",
-        "health",
-        "update",
-        "clean",
-        *DIAGNOSTIC_TITLES,
-    ):
-        sub.add_parser(command)
-
-    report_parser = sub.add_parser("report")
+    report_parser = subparsers.add_parser(
+        "report", help="Create a text, JSON, or HTML system report."
+    )
     report_parser.add_argument(
         "--format",
         choices=("text", "json", "html"),
         default="text",
+        help="Output format. Default: text.",
     )
     report_parser.add_argument(
-        "--output",
-        type=Path,
+        "--output", type=Path, help="Destination path for the report."
     )
     report_parser.add_argument(
-        "--redact",
-        action="store_true",
-        help="Mask sensitive information in the report.",
+        "--redact", action="store_true", help="Mask sensitive report data."
     )
     report_parser.add_argument(
         "--severity",
@@ -121,27 +196,27 @@ def build_parser() -> argparse.ArgumentParser:
     report_parser.add_argument(
         "--finding-code",
         type=str.upper,
-        help="Include only the specified finding code, such as JRN001.",
+        help="Include only one finding code, such as JRN001.",
     )
-
     return parser
 
 
 def main() -> None:
-    logger = configure_logging()
-    config = load_config()
-
-    logger.info("Sentinel Tools started")
-    logger.info("Loaded configuration: %s", config)
-
-    ensure_arch()
-
     parser = build_parser()
     args = parser.parse_args()
 
+    logger = configure_logging()
+    logger.info("Sentinel Tools started")
+    ensure_arch()
+
     from sentinel_tools.app import SentinelApp
 
-    SentinelApp().run(args)
+    try:
+        SentinelApp().run(args)
+    except KeyboardInterrupt:
+        print()
+        status("INFO", "Operation cancelled.")
+        raise SystemExit(130) from None
 
 
 if __name__ == "__main__":
