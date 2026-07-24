@@ -3,6 +3,28 @@ from __future__ import annotations
 from sentinel_tools import cli
 
 
+def test_run_diagnostic_uses_engine(
+    monkeypatch,
+    capsys,
+) -> None:
+    calls: list[str] = []
+
+    def fake_run_check(name: str) -> dict[str, str]:
+        calls.append(name)
+        return {"Firewall": "Active"}
+
+    monkeypatch.setattr(cli, "run_check", fake_run_check)
+
+    cli.run_diagnostic("security")
+
+    output = capsys.readouterr().out
+
+    assert calls == ["security"]
+    assert "SECURITY AUDIT" in output
+    assert "Firewall:" in output
+    assert "Active" in output
+
+
 def test_run_health_check_uses_engine(
     monkeypatch,
     capsys,
