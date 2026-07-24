@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from sentinel_tools import cli
-
 import argparse
 from argparse import Namespace
+
+from sentinel_tools import cli
 
 
 def test_run_diagnostic_uses_engine(

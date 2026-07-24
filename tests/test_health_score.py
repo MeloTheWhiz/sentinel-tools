@@ -52,12 +52,8 @@ def test_score_never_goes_below_zero() -> None:
 
 def test_expected_journal_messages_are_ignored() -> None:
     data = healthy_data()
-    data["High-priority errors from this boot"] = "\n".join(
-        [
-            "kernel: virt/tdx: TDX not supported by the host platform",
-            "kernel: Watchdog hardware is disabled",
-            "sudo: a password is required",
-        ]
+    data["High-priority errors from this boot"] = (
+        "kernel: virt/tdx: TDX not supported by the host platform\nkernel: Watchdog hardware is disabled\nsudo: a password is required"
     )
 
     result = calculate(data)
@@ -104,13 +100,7 @@ def test_serious_journal_error_is_critical() -> None:
 
 
 def test_duplicate_journal_messages_are_collapsed() -> None:
-    journal = "\n".join(
-        [
-            "Jul 21 18:00:01 host kernel: device reset failed with -71",
-            "Jul 21 18:00:02 host kernel: device reset failed with -71",
-            "Jul 21 18:00:03 host kernel: device reset failed with -71",
-        ]
-    )
+    journal = "Jul 21 18:00:01 host kernel: device reset failed with -71\nJul 21 18:00:02 host kernel: device reset failed with -71\nJul 21 18:00:03 host kernel: device reset failed with -71"
 
     errors = relevant_journal_errors(journal)
 
@@ -118,12 +108,7 @@ def test_duplicate_journal_messages_are_collapsed() -> None:
 
 
 def test_process_ids_do_not_prevent_deduplication() -> None:
-    journal = "\n".join(
-        [
-            "example[1234]: connection failed",
-            "example[5678]: connection failed",
-        ]
-    )
+    journal = "example[1234]: connection failed\nexample[5678]: connection failed"
 
     errors = relevant_journal_errors(journal)
 
@@ -131,12 +116,7 @@ def test_process_ids_do_not_prevent_deduplication() -> None:
 
 
 def test_distinct_journal_errors_are_preserved() -> None:
-    journal = "\n".join(
-        [
-            "kernel: device reset failed with -71",
-            "kernel: filesystem error detected",
-        ]
-    )
+    journal = "kernel: device reset failed with -71\nkernel: filesystem error detected"
 
     errors = relevant_journal_errors(journal)
 

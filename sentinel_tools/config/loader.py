@@ -4,7 +4,6 @@ import tomllib
 from collections.abc import Mapping
 from pathlib import Path
 
-
 DEFAULT_CONFIG = """[general]
 theme = "dark"
 health_threshold = 90
@@ -54,18 +53,18 @@ def plugin_modules(config: Mapping[str, object]) -> tuple[str, ...]:
         return ()
 
     if not isinstance(plugins, Mapping):
-        raise ValueError("The 'plugins' configuration must be a table.")
+        raise TypeError("The 'plugins' configuration must be a table.")
 
     modules = plugins.get("modules", [])
 
     if not isinstance(modules, list):
-        raise ValueError("The 'plugins.modules' setting must be a list.")
+        raise TypeError("The 'plugins.modules' setting must be a list.")
 
     normalized: list[str] = []
 
     for module_name in modules:
         if not isinstance(module_name, str):
-            raise ValueError("Every entry in 'plugins.modules' must be a string.")
+            raise TypeError("Every entry in 'plugins.modules' must be a string.")
 
         module_name = module_name.strip()
 

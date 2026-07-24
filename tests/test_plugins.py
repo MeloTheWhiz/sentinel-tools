@@ -57,7 +57,7 @@ def test_load_plugin_requires_register_function(monkeypatch) -> None:
     )
 
     with pytest.raises(
-        ValueError,
+        TypeError,
         match="must define a callable register",
     ):
         loader.load_plugin("invalid_plugin", registry)

@@ -33,7 +33,7 @@ def test_plugin_modules_requires_list() -> None:
     }
 
     with pytest.raises(
-        ValueError,
+        TypeError,
         match="must be a list",
     ):
         plugin_modules(config)

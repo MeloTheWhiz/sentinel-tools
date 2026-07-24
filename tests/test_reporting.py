@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-from sentinel_tools.scoring.health import Finding, Severity
 from sentinel_tools.reporting import (
     build_report,
     filter_findings,
@@ -9,6 +8,7 @@ from sentinel_tools.reporting import (
     save_json,
     save_text,
 )
+from sentinel_tools.scoring.health import Finding, Severity
 
 
 def sample_sections() -> dict[str, dict[str, str]]:

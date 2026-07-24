@@ -75,7 +75,7 @@ def test_registry_rejects_empty_name() -> None:
     registry = engine.CheckRegistry()
 
     with pytest.raises(ValueError, match="cannot be empty"):
-        registry.register("   ", lambda: {})
+        registry.register("   ", dict)
 
 
 def test_registry_replaces_existing_check() -> None:

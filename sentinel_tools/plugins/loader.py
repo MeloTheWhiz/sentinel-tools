@@ -29,7 +29,7 @@ def load_plugin(
     register = getattr(module, "register", None)
 
     if not callable(register):
-        raise ValueError(
+        raise TypeError(
             f"Plugin '{normalized}' must define a callable register(registry) function."
         )
 
