@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 
 from sentinel_tools import __version__
-from sentinel_tools.checks import network, security, storage, system
+from sentinel_tools.engine import run_check
 from sentinel_tools.config.loader import load_config
 from sentinel_tools.core import ensure_arch, header
 from sentinel_tools.logging.setup import configure_logging
@@ -38,7 +38,7 @@ def show_health_score(data: dict[str, str]) -> None:
 
 
 def run_health_check() -> None:
-    data = system.collect()
+    data = run_check("system")
     show("SYSTEM HEALTH", data)
     show_health_score(data)
 
@@ -48,14 +48,17 @@ def menu() -> None:
         "1": ("Update system", update),
         "2": ("Clean system", clean),
         "3": ("System health", run_health_check),
-        "4": ("Security audit", lambda: show("SECURITY AUDIT", security.collect())),
+        "4": (
+            "Security audit",
+            lambda: show("SECURITY AUDIT", run_check("security")),
+        ),
         "5": (
             "Network diagnostics",
-            lambda: show("NETWORK DIAGNOSTICS", network.collect()),
+            lambda: show("NETWORK DIAGNOSTICS", run_check("network")),
         ),
         "6": (
             "Storage diagnostics",
-            lambda: show("STORAGE DIAGNOSTICS", storage.collect()),
+            lambda: show("STORAGE DIAGNOSTICS", run_check("storage")),
         ),
         "7": (
             "Save report",
@@ -133,19 +136,17 @@ def main() -> None:
     if command == "menu":
         menu()
     elif command == "health":
-        health_data = system.collect()
-        show("SYSTEM HEALTH", health_data)
-        show_health_score(health_data)
+        run_health_check()
     elif command == "update":
         raise SystemExit(update())
     elif command == "clean":
         raise SystemExit(clean())
     elif command == "security":
-        show("SECURITY AUDIT", security.collect())
+        show("SECURITY AUDIT", run_check("security"))
     elif command == "network":
-        show("NETWORK DIAGNOSTICS", network.collect())
+        show("NETWORK DIAGNOSTICS", run_check("network"))
     elif command == "storage":
-        show("STORAGE DIAGNOSTICS", storage.collect())
+        show("STORAGE DIAGNOSTICS", run_check("storage"))
     elif command == "report":
         print(
             save_report(
