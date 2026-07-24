@@ -83,17 +83,12 @@ def menu() -> None:
             print("Invalid selection.")
 
 
-def main() -> None:
-    logger = configure_logging()
-    config = load_config()
-
-    logger.info("Sentinel Tools started")
-    logger.info("Loaded configuration: %s", config)
-
-    ensure_arch()
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="sentinel-tools")
     parser.add_argument("--version", action="version", version=__version__)
+
     sub = parser.add_subparsers(dest="command")
+
     for command in (
         "menu",
         "health",
@@ -129,6 +124,19 @@ def main() -> None:
         help="Include only the specified finding code, such as JRN001.",
     )
 
+    return parser
+
+
+def main() -> None:
+    logger = configure_logging()
+    config = load_config()
+
+    logger.info("Sentinel Tools started")
+    logger.info("Loaded configuration: %s", config)
+
+    ensure_arch()
+
+    parser = build_parser()
     args = parser.parse_args()
     command = args.command or "menu"
 
