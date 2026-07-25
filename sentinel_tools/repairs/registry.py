@@ -19,6 +19,12 @@ REPAIRS: dict[str, RepairDefinition] = {
             "Start NetworkManager immediately.",
             "Verify that NetworkManager is active.",
         ),
+        commands=(
+            ("systemctl", "is-enabled", "NetworkManager"),
+            ("sudo", "systemctl", "enable", "NetworkManager"),
+            ("sudo", "systemctl", "start", "NetworkManager"),
+            ("systemctl", "is-active", "NetworkManager"),
+        ),
     ),
 }
 

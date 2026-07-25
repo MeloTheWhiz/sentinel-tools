@@ -19,3 +19,4 @@ class RepairDefinition:
     requires_root: bool
     risk: RepairRisk
     steps: tuple[str, ...]
+    commands: tuple[tuple[str, ...], ...]

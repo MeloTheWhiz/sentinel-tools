@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from sentinel_tools.repairs import (
-    available_repairs,
-    repair_definition,
-)
-from sentinel_tools.ui.console import key_value, section
+import shlex
+
+from sentinel_tools.repairs import available_repairs, repair_definition
+from sentinel_tools.ui.console import key_value, section, status
 
 
 def list_repairs() -> None:
@@ -24,10 +23,7 @@ def show_repair_info(repair_id: str) -> None:
     key_value("Repair ID", repair.repair_id)
     key_value("Requires Root", "Yes" if repair.requires_root else "No")
     key_value("Risk", repair.risk.value.title())
-    key_value(
-        "Platforms",
-        ", ".join(repair.supported_platforms),
-    )
+    key_value("Platforms", ", ".join(repair.supported_platforms))
 
     print()
     print(repair.description)
@@ -36,3 +32,20 @@ def show_repair_info(repair_id: str) -> None:
 
     for step in repair.steps:
         print(f"  • {step}")
+
+
+def show_repair_dry_run(repair_id: str) -> None:
+    repair = repair_definition(repair_id)
+
+    section(f"Dry Run: {repair.title}")
+    status("INFO", "No commands will be executed.")
+
+    key_value("Repair ID", repair.repair_id)
+    key_value("Requires Root", "Yes" if repair.requires_root else "No")
+    key_value("Risk", repair.risk.value.title())
+
+    print()
+    print("Planned commands:")
+
+    for command in repair.commands:
+        print(f"  $ {shlex.join(command)}")

@@ -172,3 +172,34 @@ def test_repair_info_parser() -> None:
     assert args.command == "repair"
     assert args.repair_command == "info"
     assert args.repair_id == "enable-networkmanager"
+
+
+def test_repair_run_dry_run_parser() -> None:
+    parser = cli.build_parser()
+
+    args = parser.parse_args(
+        [
+            "repair",
+            "run",
+            "enable-networkmanager",
+            "--dry-run",
+        ]
+    )
+
+    assert args.command == "repair"
+    assert args.repair_command == "run"
+    assert args.repair_id == "enable-networkmanager"
+    assert args.dry_run is True
+
+
+def test_repair_run_requires_dry_run() -> None:
+    parser = cli.build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "repair",
+                "run",
+                "enable-networkmanager",
+            ]
+        )

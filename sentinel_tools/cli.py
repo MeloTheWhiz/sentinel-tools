@@ -222,6 +222,20 @@ def build_parser() -> argparse.ArgumentParser:
         "repair_id",
         help="Repair identifier.",
     )
+    run_parser = repair_subparsers.add_parser(
+        "run",
+        help="Preview or execute a registered repair.",
+    )
+    run_parser.add_argument(
+        "repair_id",
+        help="Repair identifier.",
+    )
+    run_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        required=True,
+        help="Display planned commands without executing them.",
+    )
     return parser
 
 

@@ -16,6 +16,7 @@ from sentinel_tools.maintenance import clean, update
 from sentinel_tools.plugins import load_plugins
 from sentinel_tools.repairs.ui import (
     list_repairs,
+    show_repair_dry_run,
     show_repair_info,
 )
 from sentinel_tools.reports.service import save_report
@@ -65,3 +66,5 @@ class SentinelApp:
                 list_repairs()
             elif args.repair_command == "info":
                 show_repair_info(args.repair_id)
+            elif args.repair_command == "run":
+                show_repair_dry_run(args.repair_id)

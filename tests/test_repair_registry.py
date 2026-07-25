@@ -16,6 +16,12 @@ def test_networkmanager_repair_is_registered() -> None:
     assert repair.requires_root is True
     assert repair.risk is RepairRisk.LOW
     assert repair.supported_platforms == ("linux",)
+    assert repair.commands == (
+        ("systemctl", "is-enabled", "NetworkManager"),
+        ("sudo", "systemctl", "enable", "NetworkManager"),
+        ("sudo", "systemctl", "start", "NetworkManager"),
+        ("systemctl", "is-active", "NetworkManager"),
+    )
 
 
 def test_available_repairs_returns_registered_repairs() -> None:
