@@ -69,6 +69,10 @@ class HealthScore:
         message: str,
         recommendation: str,
         penalty: int,
+        category: str = "system",
+        title: str = "",
+        explanation: str = "",
+        repair_id: str | None = None,
     ) -> None:
         self.findings.append(
             Issue(
@@ -76,6 +80,10 @@ class HealthScore:
                 severity=severity,
                 message=message,
                 recommendation=recommendation,
+                category=category,
+                title=title,
+                explanation=explanation,
+                repair_id=repair_id,
             )
         )
         self.score -= penalty
@@ -222,8 +230,14 @@ def calculate(data: dict[str, str]) -> HealthScore:
             message="One or more system services have failed.",
             recommendation="Inspect failed services with: systemctl --failed",
             penalty=20,
+            category="services",
+            title="System service failure",
+            explanation=(
+                "One or more system-level services entered a failed state. "
+                "This can affect networking, hardware support, login services, "
+                "background tasks, or other core system functions."
+            ),
         )
-
     failed_user = data.get("Failed user services", "None")
     if failed_user.strip().lower() != "none":
         result.add_finding(
@@ -234,7 +248,14 @@ def calculate(data: dict[str, str]) -> HealthScore:
                 "Inspect failed user services with: systemctl --user --failed"
             ),
             penalty=10,
+            category="services",
+            title="User service failure",
+            explanation=(
+                "One or more services running under the current user account "
+                "failed to start or stopped unexpectedly."
+            ),
         )
+
     network_manager = data.get("Service NetworkManager", "unknown").strip().lower()
 
     if network_manager not in {"active", "unknown"}:
@@ -247,6 +268,13 @@ def calculate(data: dict[str, str]) -> HealthScore:
                 "then enable it with: sudo systemctl enable --now NetworkManager"
             ),
             penalty=15,
+            category="network",
+            title="Network service inactive",
+            explanation=(
+                "NetworkManager is not currently active, so managed wired, "
+                "wireless, VPN, and mobile network connections may be unavailable."
+            ),
+            repair_id="enable-networkmanager",
         )
 
     chrony = data.get("Service Chrony", "unknown").strip().lower()
@@ -267,6 +295,13 @@ def calculate(data: dict[str, str]) -> HealthScore:
                 "Enable chronyd or systemd-timesyncd to keep the system clock accurate."
             ),
             penalty=5,
+            category="services",
+            title="Time synchronization inactive",
+            explanation=(
+                "Neither chronyd nor systemd-timesyncd appears to be active. "
+                "An inaccurate clock can affect logs, certificates, authentication, "
+                "software updates, and scheduled tasks."
+            ),
         )
 
     journal = data.get("High-priority errors from this boot", "None")
@@ -304,6 +339,7 @@ def calculate(data: dict[str, str]) -> HealthScore:
             recommendation="Review orphan packages with: pacman -Qtdq",
             penalty=5,
         )
+
     filesystem_data = data.get("Filesystem usage", "")
     root_usage = root_filesystem_usage(filesystem_data)
 
@@ -318,6 +354,13 @@ def calculate(data: dict[str, str]) -> HealthScore:
                 "and inspect package caches, logs, downloads, and old snapshots."
             ),
             penalty=20,
+            category="storage",
+            title="Root filesystem critically full",
+            explanation=(
+                "The root filesystem has reached a critically high usage level. "
+                "The system may fail to write logs, install updates, create temporary "
+                "files, or start services."
+            ),
         )
     elif root_usage is not None and root_usage >= 85:
         result.add_finding(
@@ -330,6 +373,12 @@ def calculate(data: dict[str, str]) -> HealthScore:
                 "then remove unnecessary files before space becomes critical."
             ),
             penalty=10,
+            category="storage",
+            title="Root filesystem usage high",
+            explanation=(
+                "The root filesystem is approaching a critical usage level and "
+                "should be cleaned before free space becomes insufficient."
+            ),
         )
 
     result.score = max(0, min(100, result.score))

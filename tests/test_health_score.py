@@ -344,3 +344,31 @@ def test_missing_filesystem_data_creates_no_storage_finding() -> None:
     result = calculate(healthy_data())
 
     assert all(not finding.code.startswith("STR") for finding in result.findings)
+
+
+def test_networkmanager_finding_has_repair_metadata() -> None:
+    data = healthy_data()
+    data["Service NetworkManager"] = "inactive"
+
+    result = calculate(data)
+    finding = next(finding for finding in result.findings if finding.code == "SVC001")
+
+    assert finding.category == "network"
+    assert finding.title == "Network service inactive"
+    assert finding.explanation
+    assert finding.repair_id == "enable-networkmanager"
+
+
+def test_storage_finding_has_storage_category() -> None:
+    data = healthy_data()
+    data["Filesystem usage"] = """\
+Filesystem     Type  Size  Used Avail Use% Mounted on
+/dev/sda2      ext4  100G   96G  4.0G  96% /
+"""
+
+    result = calculate(data)
+    finding = next(finding for finding in result.findings if finding.code == "STR001")
+
+    assert finding.category == "storage"
+    assert finding.title == "Root filesystem critically full"
+    assert finding.explanation

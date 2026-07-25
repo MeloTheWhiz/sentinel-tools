@@ -55,7 +55,7 @@ class LinuxPlatform(PlatformBackend):
         commands = {
             "Uptime and load": ["uptime"],
             "Memory": ["free", "-h"],
-            "Filesystems": [
+            "Filesystem usage": [
                 "df",
                 "-hT",
                 "-x",

@@ -44,3 +44,17 @@ def test_finding_remains_a_compatibility_alias() -> None:
 
     assert isinstance(finding, Issue)
     assert finding.code == "SYS001"
+
+
+def test_issue_defaults_preserve_backward_compatibility() -> None:
+    issue = Issue(
+        code="SYS001",
+        severity=Severity.CRITICAL,
+        message="A system service failed.",
+        recommendation="Inspect failed services.",
+    )
+
+    assert issue.category == "system"
+    assert issue.title == ""
+    assert issue.explanation == ""
+    assert issue.repair_id is None

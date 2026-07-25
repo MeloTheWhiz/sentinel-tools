@@ -93,8 +93,12 @@ def build_report(
                 {
                     "code": finding.code,
                     "severity": finding.severity.value,
+                    "category": finding.category,
+                    "title": finding.display_title,
                     "message": finding.message,
+                    "explanation": finding.explanation,
                     "recommendation": finding.recommendation,
+                    "repair_id": finding.repair_id,
                 }
                 for finding in findings
             ],
@@ -221,7 +225,11 @@ def save_html(
         findings.append(
             '<article class="finding">'
             f"<strong>{escape(str(finding['severity'])).upper()}</strong>"
+            f"<h3>{escape(str(finding['title']))}</h3>"
             f"<p>{escape(str(finding['message']))}</p>"
+            f"<p>{escape(str(finding['explanation']))}</p>"
+            "<p><b>Category:</b> "
+            f"{escape(str(finding['category']))}</p>"
             "<p><b>Recommendation:</b> "
             f"{escape(str(finding['recommendation']))}</p>"
             "</article>"
