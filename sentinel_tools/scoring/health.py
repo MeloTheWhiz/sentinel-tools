@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from sentinel_tools.catalog import definition
 from sentinel_tools.models import Issue, Severity
 
 IGNORED_JOURNAL_PATTERNS = (
@@ -65,25 +66,23 @@ class HealthScore:
         self,
         *,
         code: str,
-        severity: Severity,
         message: str,
-        recommendation: str,
         penalty: int,
-        category: str = "system",
-        title: str = "",
-        explanation: str = "",
-        repair_id: str | None = None,
+        severity: Severity | None = None,
+        recommendation: str | None = None,
     ) -> None:
+        issue_definition = definition(code)
+
         self.findings.append(
             Issue(
-                code=code,
-                severity=severity,
+                code=issue_definition.code,
+                severity=severity or issue_definition.severity,
                 message=message,
-                recommendation=recommendation,
-                category=category,
-                title=title,
-                explanation=explanation,
-                repair_id=repair_id,
+                recommendation=(recommendation or issue_definition.recommendation),
+                category=issue_definition.category,
+                title=issue_definition.title,
+                explanation=issue_definition.explanation,
+                repair_id=issue_definition.repair_id,
             )
         )
         self.score -= penalty
@@ -226,82 +225,38 @@ def calculate(data: dict[str, str]) -> HealthScore:
     if failed_system.strip().lower() != "none":
         result.add_finding(
             code="SYS001",
-            severity=Severity.CRITICAL,
             message="One or more system services have failed.",
-            recommendation="Inspect failed services with: systemctl --failed",
             penalty=20,
-            category="services",
-            title="System service failure",
-            explanation=(
-                "One or more system-level services entered a failed state. "
-                "This can affect networking, hardware support, login services, "
-                "background tasks, or other core system functions."
-            ),
         )
+
     failed_user = data.get("Failed user services", "None")
     if failed_user.strip().lower() != "none":
         result.add_finding(
             code="USR001",
-            severity=Severity.WARNING,
             message="One or more user services have failed.",
-            recommendation=(
-                "Inspect failed user services with: systemctl --user --failed"
-            ),
             penalty=10,
-            category="services",
-            title="User service failure",
-            explanation=(
-                "One or more services running under the current user account "
-                "failed to start or stopped unexpectedly."
-            ),
         )
 
     network_manager = data.get("Service NetworkManager", "unknown").strip().lower()
-
     if network_manager not in {"active", "unknown"}:
         result.add_finding(
             code="SVC001",
-            severity=Severity.CRITICAL,
             message="NetworkManager is not active.",
-            recommendation=(
-                "Inspect NetworkManager with: systemctl status NetworkManager; "
-                "then enable it with: sudo systemctl enable --now NetworkManager"
-            ),
             penalty=15,
-            category="network",
-            title="Network service inactive",
-            explanation=(
-                "NetworkManager is not currently active, so managed wired, "
-                "wireless, VPN, and mobile network connections may be unavailable."
-            ),
-            repair_id="enable-networkmanager",
         )
 
     chrony = data.get("Service Chrony", "unknown").strip().lower()
     timesyncd = data.get("Service Systemd timesync", "unknown").strip().lower()
 
     known_time_services = {
-        state
-        for state in (chrony, timesyncd)
-        if state not in {"unknown", "unit chronyd.service could not be found."}
+        service for service in (chrony, timesyncd) if service != "unknown"
     }
 
     if known_time_services and "active" not in known_time_services:
         result.add_finding(
             code="SVC002",
-            severity=Severity.WARNING,
             message="No supported time-synchronization service is active.",
-            recommendation=(
-                "Enable chronyd or systemd-timesyncd to keep the system clock accurate."
-            ),
             penalty=5,
-            category="services",
-            title="Time synchronization inactive",
-            explanation=(
-                "Neither chronyd nor systemd-timesyncd appears to be active. "
-                "An inaccurate clock can affect logs, certificates, authentication, "
-                "software updates, and scheduled tasks."
-            ),
         )
 
     journal = data.get("High-priority errors from this boot", "None")
@@ -311,22 +266,20 @@ def calculate(data: dict[str, str]) -> HealthScore:
     if penalty:
         result.add_finding(
             code="JRN001",
-            severity=journal_severity(errors),
             message=(
                 f"The current boot contains {len(errors)} "
                 "relevant high-priority error(s)."
             ),
-            recommendation=journal_recommendation(errors),
             penalty=penalty,
+            severity=journal_severity(errors),
+            recommendation=journal_recommendation(errors),
         )
 
     package_database = data.get("Package database", "")
     if "no database errors" not in package_database.lower():
         result.add_finding(
             code="PKG001",
-            severity=Severity.CRITICAL,
             message="The package database may contain errors.",
-            recommendation="Check the package database with: pacman -Dk",
             penalty=20,
         )
 
@@ -334,9 +287,7 @@ def calculate(data: dict[str, str]) -> HealthScore:
     if orphan_packages.strip().lower() != "none":
         result.add_finding(
             code="PKG002",
-            severity=Severity.INFO,
             message="Orphan packages are installed.",
-            recommendation="Review orphan packages with: pacman -Qtdq",
             penalty=5,
         )
 
@@ -346,39 +297,14 @@ def calculate(data: dict[str, str]) -> HealthScore:
     if root_usage is not None and root_usage >= 95:
         result.add_finding(
             code="STR001",
-            severity=Severity.CRITICAL,
-            message=f"The root filesystem is critically full at {root_usage}%.",
-            recommendation=(
-                "Free disk space immediately. Review usage with: "
-                "sudo du -xhd1 / | sort -h; "
-                "and inspect package caches, logs, downloads, and old snapshots."
-            ),
+            message=(f"The root filesystem is critically full at {root_usage}%."),
             penalty=20,
-            category="storage",
-            title="Root filesystem critically full",
-            explanation=(
-                "The root filesystem has reached a critically high usage level. "
-                "The system may fail to write logs, install updates, create temporary "
-                "files, or start services."
-            ),
         )
     elif root_usage is not None and root_usage >= 85:
         result.add_finding(
             code="STR002",
-            severity=Severity.WARNING,
             message=f"The root filesystem usage is high at {root_usage}%.",
-            recommendation=(
-                "Review root filesystem usage with: "
-                "sudo du -xhd1 / | sort -h; "
-                "then remove unnecessary files before space becomes critical."
-            ),
             penalty=10,
-            category="storage",
-            title="Root filesystem usage high",
-            explanation=(
-                "The root filesystem is approaching a critical usage level and "
-                "should be cleaned before free space becomes insufficient."
-            ),
         )
 
     result.score = max(0, min(100, result.score))
