@@ -67,7 +67,7 @@ class HealthScore:
         *,
         code: str,
         message: str,
-        penalty: int,
+        penalty: int | None = None,
         severity: Severity | None = None,
         recommendation: str | None = None,
     ) -> None:
@@ -85,7 +85,9 @@ class HealthScore:
                 repair_id=issue_definition.repair_id,
             )
         )
-        self.score -= penalty
+
+        effective_penalty = penalty if penalty is not None else issue_definition.penalty
+        self.score -= effective_penalty
 
 
 def normalize_journal_line(line: str) -> str:
@@ -226,15 +228,12 @@ def calculate(data: dict[str, str]) -> HealthScore:
         result.add_finding(
             code="SYS001",
             message="One or more system services have failed.",
-            penalty=20,
         )
-
     failed_user = data.get("Failed user services", "None")
     if failed_user.strip().lower() != "none":
         result.add_finding(
             code="USR001",
             message="One or more user services have failed.",
-            penalty=10,
         )
 
     network_manager = data.get("Service NetworkManager", "unknown").strip().lower()
@@ -242,7 +241,6 @@ def calculate(data: dict[str, str]) -> HealthScore:
         result.add_finding(
             code="SVC001",
             message="NetworkManager is not active.",
-            penalty=15,
         )
 
     chrony = data.get("Service Chrony", "unknown").strip().lower()
@@ -256,7 +254,6 @@ def calculate(data: dict[str, str]) -> HealthScore:
         result.add_finding(
             code="SVC002",
             message="No supported time-synchronization service is active.",
-            penalty=5,
         )
 
     journal = data.get("High-priority errors from this boot", "None")
@@ -280,7 +277,6 @@ def calculate(data: dict[str, str]) -> HealthScore:
         result.add_finding(
             code="PKG001",
             message="The package database may contain errors.",
-            penalty=20,
         )
 
     orphan_packages = data.get("Orphan packages", "None")
@@ -288,7 +284,6 @@ def calculate(data: dict[str, str]) -> HealthScore:
         result.add_finding(
             code="PKG002",
             message="Orphan packages are installed.",
-            penalty=5,
         )
 
     filesystem_data = data.get("Filesystem usage", "")
@@ -298,13 +293,11 @@ def calculate(data: dict[str, str]) -> HealthScore:
         result.add_finding(
             code="STR001",
             message=(f"The root filesystem is critically full at {root_usage}%."),
-            penalty=20,
         )
     elif root_usage is not None and root_usage >= 85:
         result.add_finding(
             code="STR002",
             message=f"The root filesystem usage is high at {root_usage}%.",
-            penalty=10,
         )
 
     result.score = max(0, min(100, result.score))

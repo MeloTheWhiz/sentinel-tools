@@ -9,6 +9,7 @@ from sentinel_tools.models import Severity
 class IssueDefinition:
     code: str
     severity: Severity
+    penalty: int
     category: str
     title: str
     explanation: str
@@ -20,6 +21,7 @@ ISSUES: dict[str, IssueDefinition] = {
     "SYS001": IssueDefinition(
         code="SYS001",
         severity=Severity.CRITICAL,
+        penalty=20,
         category="services",
         title="System service failure",
         explanation=(
@@ -32,6 +34,7 @@ ISSUES: dict[str, IssueDefinition] = {
     "USR001": IssueDefinition(
         code="USR001",
         severity=Severity.WARNING,
+        penalty=10,
         category="services",
         title="User service failure",
         explanation=(
@@ -43,6 +46,7 @@ ISSUES: dict[str, IssueDefinition] = {
     "SVC001": IssueDefinition(
         code="SVC001",
         severity=Severity.CRITICAL,
+        penalty=15,
         category="network",
         title="Network service inactive",
         explanation=(
@@ -59,6 +63,7 @@ ISSUES: dict[str, IssueDefinition] = {
     "SVC002": IssueDefinition(
         code="SVC002",
         severity=Severity.WARNING,
+        penalty=5,
         category="services",
         title="Time synchronization inactive",
         explanation=(
@@ -73,6 +78,7 @@ ISSUES: dict[str, IssueDefinition] = {
     "JRN001": IssueDefinition(
         code="JRN001",
         severity=Severity.WARNING,
+        penalty=10,
         category="journal",
         title="High-priority boot errors",
         explanation=(
@@ -85,6 +91,7 @@ ISSUES: dict[str, IssueDefinition] = {
     "PKG001": IssueDefinition(
         code="PKG001",
         severity=Severity.CRITICAL,
+        penalty=20,
         category="packages",
         title="Package database problem",
         explanation=(
@@ -97,6 +104,7 @@ ISSUES: dict[str, IssueDefinition] = {
     "PKG002": IssueDefinition(
         code="PKG002",
         severity=Severity.INFO,
+        penalty=5,
         category="packages",
         title="Orphan packages detected",
         explanation=(
@@ -108,6 +116,7 @@ ISSUES: dict[str, IssueDefinition] = {
     "STR001": IssueDefinition(
         code="STR001",
         severity=Severity.CRITICAL,
+        penalty=20,
         category="storage",
         title="Root filesystem critically full",
         explanation=(
@@ -124,6 +133,7 @@ ISSUES: dict[str, IssueDefinition] = {
     "STR002": IssueDefinition(
         code="STR002",
         severity=Severity.WARNING,
+        penalty=10,
         category="storage",
         title="Root filesystem usage high",
         explanation=(
