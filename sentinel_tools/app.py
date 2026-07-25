@@ -14,6 +14,10 @@ from sentinel_tools.config.loader import load_config, plugin_modules
 from sentinel_tools.engine import registry
 from sentinel_tools.maintenance import clean, update
 from sentinel_tools.plugins import load_plugins
+from sentinel_tools.repairs.ui import (
+    list_repairs,
+    show_repair_info,
+)
 from sentinel_tools.reports.service import save_report
 from sentinel_tools.ui.console import status
 
@@ -56,3 +60,8 @@ class SentinelApp:
                 finding_code=args.finding_code,
             )
             status("OK", f"Report saved to {destination}")
+        elif command == "repair":
+            if args.repair_command == "list":
+                list_repairs()
+            elif args.repair_command == "info":
+                show_repair_info(args.repair_id)

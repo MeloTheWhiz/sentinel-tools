@@ -198,6 +198,30 @@ def build_parser() -> argparse.ArgumentParser:
         type=str.upper,
         help="Include only one finding code, such as JRN001.",
     )
+    repair_parser = subparsers.add_parser(
+        "repair",
+        help="Display available repairs and repair information.",
+    )
+
+    repair_subparsers = repair_parser.add_subparsers(
+        dest="repair_command",
+        required=True,
+    )
+
+    repair_subparsers.add_parser(
+        "list",
+        help="List available repairs.",
+    )
+
+    info_parser = repair_subparsers.add_parser(
+        "info",
+        help="Show detailed information about a repair.",
+    )
+
+    info_parser.add_argument(
+        "repair_id",
+        help="Repair identifier.",
+    )
     return parser
 
 

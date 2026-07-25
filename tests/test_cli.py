@@ -147,3 +147,28 @@ def test_main_delegates_to_sentinel_app(monkeypatch) -> None:
     cli.main()
 
     assert calls == [args]
+
+
+def test_repair_list_parser() -> None:
+    parser = cli.build_parser()
+
+    args = parser.parse_args(["repair", "list"])
+
+    assert args.command == "repair"
+    assert args.repair_command == "list"
+
+
+def test_repair_info_parser() -> None:
+    parser = cli.build_parser()
+
+    args = parser.parse_args(
+        [
+            "repair",
+            "info",
+            "enable-networkmanager",
+        ]
+    )
+
+    assert args.command == "repair"
+    assert args.repair_command == "info"
+    assert args.repair_id == "enable-networkmanager"
