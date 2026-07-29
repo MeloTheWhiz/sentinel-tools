@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from sentinel_tools import __version__
+from sentinel_tools.aur import show_aur_audit
 from sentinel_tools.core import ensure_arch
 from sentinel_tools.engine import available_checks, run_check
 from sentinel_tools.logging.setup import configure_logging
@@ -90,14 +91,14 @@ def menu() -> None:
         "4": ("Security audit", lambda: run_diagnostic("security")),
         "5": ("Network diagnostics", lambda: run_diagnostic("network")),
         "6": ("Storage diagnostics", lambda: run_diagnostic("storage")),
-        "7": (
+        "7": ("AUR security audit", show_aur_audit),
+        "8": (
             "Save text report",
             lambda: status(
                 "OK", f"Report saved to {save_report(report_format='text')}"
             ),
         ),
     }
-
     while True:
         banner(__version__)
         section("Interactive Menu")
@@ -172,7 +173,9 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser(
         "clean", help="Perform guided package and filesystem cleanup."
     )
-
+    subparsers.add_parser(
+        "aur", help="Audit installed AUR and foreign packages without modifying them."
+    )
     report_parser = subparsers.add_parser(
         "report", help="Create a text, JSON, or HTML system report."
     )

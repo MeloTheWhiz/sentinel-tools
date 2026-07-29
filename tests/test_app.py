@@ -126,3 +126,33 @@ def test_app_loads_configured_plugins_once(monkeypatch) -> None:
             app.registry,
         )
     ]
+
+
+def test_app_runs_aur_command(monkeypatch) -> None:
+    from argparse import Namespace
+
+    import pytest
+
+    import sentinel_tools.app as app_module
+    from sentinel_tools.app import SentinelApp
+
+    called = False
+
+    def fake_show_aur_audit() -> int:
+        nonlocal called
+        called = True
+        return 0
+
+    monkeypatch.setattr(
+        app_module,
+        "show_aur_audit",
+        fake_show_aur_audit,
+    )
+
+    app = SentinelApp(config={})
+
+    with pytest.raises(SystemExit) as error:
+        app.run(Namespace(command="aur"))
+
+    assert error.value.code == 0
+    assert called

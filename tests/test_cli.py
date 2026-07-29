@@ -126,6 +126,12 @@ def test_help_is_available_without_platform_check(monkeypatch) -> None:
     assert error.value.code == 0
 
 
+def test_parser_accepts_aur_command() -> None:
+    args = cli.build_parser().parse_args(["aur"])
+
+    assert args.command == "aur"
+
+
 def test_main_delegates_to_sentinel_app(monkeypatch) -> None:
     calls: list[object] = []
     args = Namespace(command="health")

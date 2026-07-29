@@ -15,6 +15,7 @@ from sentinel_tools.engine import registry
 from sentinel_tools.maintenance import clean, update
 from sentinel_tools.plugins import load_plugins
 from sentinel_tools.reports.service import save_report
+from sentinel_tools.aur import show_aur_audit
 from sentinel_tools.ui.console import status
 
 
@@ -47,6 +48,8 @@ class SentinelApp:
             raise SystemExit(clean())
         elif command in DIAGNOSTIC_TITLES:
             run_diagnostic(command)
+        elif command == "aur":
+            raise SystemExit(show_aur_audit())
         elif command == "report":
             destination = save_report(
                 report_format=args.format,
