@@ -1,4 +1,4 @@
-from sentinel_tools.core import run, have
+from sentinel_tools.core import have, run
 
 
 def collect() -> dict:

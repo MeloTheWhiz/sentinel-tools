@@ -1,7 +1,16 @@
+from __future__ import annotations
+
 from sentinel_tools.core import have, run, system_identity
+
+IGNORED_DISPLAY_JOURNAL_PATTERNS = (
+    "a password is required",
+    "no password was provided",
+    "a terminal is required",
+)
 
 
 def service_state(service: str) -> str:
+    """Return the current systemd state for a service."""
     result = run(["systemctl", "is-active", service])
 
     if result.stdout:
@@ -13,13 +22,39 @@ def service_state(service: str) -> str:
     return "unknown"
 
 
+def filter_journal_output(output: str) -> str:
+    """Remove expected probe noise from displayed journal errors."""
+    if not output.strip():
+        return "None"
+
+    visible_lines = []
+
+    for line in output.splitlines():
+        lowered = line.lower()
+
+        if any(pattern in lowered for pattern in IGNORED_DISPLAY_JOURNAL_PATTERNS):
+            continue
+
+        visible_lines.append(line)
+
+    return "\n".join(visible_lines) if visible_lines else "None"
+
+
 def collect() -> dict[str, str]:
+    """Collect system identity, service, package, and journal information."""
     data = system_identity()
 
     commands = {
         "Uptime and load": ["uptime"],
         "Memory": ["free", "-h"],
-        "Filesystems": ["df", "-hT", "-x", "tmpfs", "-x", "devtmpfs"],
+        "Filesystems": [
+            "df",
+            "-hT",
+            "-x",
+            "tmpfs",
+            "-x",
+            "devtmpfs",
+        ],
         "Failed system services": [
             "systemctl",
             "--failed",
@@ -33,7 +68,15 @@ def collect() -> dict[str, str]:
             "--no-legend",
             "--plain",
         ],
-        "High-priority errors from this boot": [
+        "Orphan packages": ["pacman", "-Qtdq"],
+    }
+
+    for label, command in commands.items():
+        result = run(command)
+        data[label] = result.stdout or result.stderr or "None"
+
+    journal = run(
+        [
             "journalctl",
             "-b",
             "-p",
@@ -41,13 +84,10 @@ def collect() -> dict[str, str]:
             "--no-pager",
             "-n",
             "30",
-        ],
-        "Orphan packages": ["pacman", "-Qtdq"],
-    }
-
-    for label, command in commands.items():
-        result = run(command)
-        data[label] = result.stdout or result.stderr or "None"
+        ]
+    )
+    journal_output = journal.stdout or journal.stderr
+    data["High-priority errors from this boot"] = filter_journal_output(journal_output)
 
     services = {
         "NetworkManager": "NetworkManager.service",
@@ -61,9 +101,9 @@ def collect() -> dict[str, str]:
 
     if have("plasmashell"):
         plasma = run(["plasmashell", "--version"])
-        data["KDE Plasma"] = plasma.stdout or plasma.stderr
+        data["KDE Plasma"] = plasma.stdout or plasma.stderr or "Unknown"
 
     database = run(["pacman", "-Dk"])
-    data["Package database"] = database.stdout or database.stderr
+    data["Package database"] = database.stdout or database.stderr or "Unknown"
 
     return data

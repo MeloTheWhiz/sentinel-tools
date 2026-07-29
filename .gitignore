@@ -1,19 +1,30 @@
-.venv/
+# Python generated files
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+
+# Packaging artifacts
 *.egg-info/
 build/
 dist/
+
+# Test and lint caches
 .pytest_cache/
+.ruff_cache/
+
+# Logs
 *.log
-sentinel-tools-report.txt
-sentinel-tools-report.json
 
 # Local safety backups
 backups/
 
 # Generated Sentinel reports
+sentinel-tools-report.txt
+sentinel-tools-report.json
 sentinel-report.html
 report.html
 report.json

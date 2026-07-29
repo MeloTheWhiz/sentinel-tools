@@ -5,9 +5,9 @@ import platform
 import shutil
 import subprocess
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 
 @dataclass
@@ -85,7 +85,7 @@ def confirm(prompt: str) -> bool:
 
 def ensure_arch() -> None:
     if not Path("/etc/arch-release").exists():
-        raise SystemExit("Sentinel Tools v0.1.1 currently supports Arch Linux only.")
+        raise SystemExit("Sentinel Tools v0.2.0 currently supports Arch Linux only.")
 
 
 def operating_system_name() -> str:
