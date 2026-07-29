@@ -2,7 +2,7 @@
 
 Sentinel Tools is a command-line toolkit for **safe Arch Linux maintenance, system diagnostics, health scoring, and shareable reports**.
 
-> **Alpha software:** Sentinel Tools 0.1.x currently supports Arch Linux only. Windows, macOS, additional Linux distributions, and FreeBSD are planned. Test on non-critical systems and review reports before sharing them.
+> **Alpha software:** Sentinel Tools 0.2.x currently supports Arch Linux only. Windows, macOS, additional Linux distributions, and FreeBSD are planned. Test on non-critical systems and review reports before sharing them.
 
 ## Features
 
@@ -11,6 +11,7 @@ Sentinel Tools is a command-line toolkit for **safe Arch Linux maintenance, syst
 - Text, JSON, and HTML reports
 - Optional redaction of sensitive report data
 - Guided Arch Linux updates and cleanup
+- Read-only AUR and foreign package security auditing
 - Plugin-based diagnostic checks
 - Interactive menu and direct CLI commands
 
@@ -39,10 +40,8 @@ Close and reopen the terminal if requested.
 ```bash
 git clone https://github.com/MeloTheWhiz/sentinel-tools.git
 cd sentinel-tools
-git switch feature/v0.2-release-prep
 ```
 
-Replace `USERNAME` with the repository owner's GitHub username.
 
 ### 3. Install Sentinel Tools
 
@@ -72,6 +71,7 @@ sentinel-tools checks
 sentinel-tools security
 sentinel-tools network
 sentinel-tools storage
+sentinel-tools aur
 ```
 
 ## Reports
