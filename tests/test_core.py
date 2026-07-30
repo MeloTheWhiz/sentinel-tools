@@ -35,7 +35,7 @@ def test_noninteractive_sudo_uses_dash_n(monkeypatch) -> None:
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
-    result = run(["smartctl", "-H", "/dev/sda"], sudo=True, sudo_prompt=False)
+    result = run(["smartctl", "-H", "/dev/nvme0n1"], sudo=True, sudo_prompt=False)
 
     assert captured_command[:2] == ["sudo", "-n"]
     assert result.stderr == "Administrator access required."
