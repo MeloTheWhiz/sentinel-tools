@@ -5,6 +5,19 @@ from argparse import Namespace
 import pytest
 
 from sentinel_tools import app
+from sentinel_tools.app import _format_bytes
+
+
+def test_format_bytes_returns_unknown_for_none() -> None:
+    assert _format_bytes(None) == "Unknown"
+
+
+def test_format_bytes_formats_gibibytes() -> None:
+    assert _format_bytes(8 * 1024**3) == "8.00 GiB"
+
+
+def test_format_bytes_formats_fractional_gibibytes() -> None:
+    assert _format_bytes(1536 * 1024**2) == "1.50 GiB"
 
 
 def test_app_runs_health_command(monkeypatch) -> None:

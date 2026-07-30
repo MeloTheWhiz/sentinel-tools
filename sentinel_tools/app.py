@@ -17,6 +17,56 @@ from sentinel_tools.plugins import load_plugins
 from sentinel_tools.reports.service import save_report
 from sentinel_tools.aur import show_aur_audit
 from sentinel_tools.ui.console import status
+from sentinel_tools.platform import get_platform
+
+
+def _format_bytes(value: int | None) -> str:
+    if value is None:
+        return "Unknown"
+
+    gibibytes = value / (1024**3)
+    return f"{gibibytes:.2f} GiB"
+
+
+def show_system_info() -> None:
+    platform_instance = get_platform()
+    cpu_info = platform_instance.cpu()
+    memory_info = platform_instance.memory()
+    disks = platform_instance.disks()
+
+    used_memory = None
+    if memory_info.total_bytes is not None and memory_info.available_bytes is not None:
+        used_memory = memory_info.total_bytes - memory_info.available_bytes
+
+    print()
+    print("========================================")
+    print("       SENTINEL SYSTEM INFORMATION")
+    print("========================================")
+    print()
+    print(f"Operating system: {platform_instance.name}")
+    print(f"Architecture:     {cpu_info.architecture or 'Unknown'}")
+    print(f"Processor:        {cpu_info.model or 'Unknown'}")
+    print(f"Logical cores:    {cpu_info.logical_cores or 'Unknown'}")
+    print()
+    print(f"Memory total:     {_format_bytes(memory_info.total_bytes)}")
+    print(f"Memory available: {_format_bytes(memory_info.available_bytes)}")
+    print(f"Memory used:      {_format_bytes(used_memory)}")
+    print()
+    print("Storage:")
+
+    if not disks:
+        print("  No mounted storage detected.")
+    else:
+        for disk in disks:
+            print(
+                f"  {disk.mountpoint}: "
+                f"{_format_bytes(disk.used_bytes)} used / "
+                f"{_format_bytes(disk.total_bytes)} total "
+                f"({_format_bytes(disk.free_bytes)} free)"
+            )
+
+    print()
+    print("========================================")
 
 
 class SentinelApp:
@@ -42,6 +92,8 @@ class SentinelApp:
             run_health_check()
         elif command == "checks":
             show_available_checks()
+        elif command == "system-info":
+            show_system_info()
         elif command == "update":
             raise SystemExit(update())
         elif command == "clean":

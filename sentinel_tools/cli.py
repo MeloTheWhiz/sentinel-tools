@@ -171,6 +171,10 @@ def build_parser() -> argparse.ArgumentParser:
         "update", help="Safely update Arch Linux and Flatpak packages."
     )
     subparsers.add_parser(
+        "system-info",
+        help="Display platform-neutral operating system and hardware information.",
+    )
+    subparsers.add_parser(
         "clean", help="Perform guided package and filesystem cleanup."
     )
     subparsers.add_parser(
