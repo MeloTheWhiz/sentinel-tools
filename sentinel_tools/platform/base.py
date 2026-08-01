@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from sentinel_tools.models import CPUInfo, DiskInfo, MemoryInfo
+from sentinel_tools.models import CPUInfo, DiskInfo, MemoryInfo, SystemInfo
 
 
 class Platform(ABC):
@@ -21,6 +21,14 @@ class Platform(ABC):
 
     @abstractmethod
     def storage_devices(self) -> list[str]: ...
+
+    def system_info(self) -> SystemInfo:
+        return SystemInfo(
+            operating_system=self.name,
+            cpu=self.cpu(),
+            memory=self.memory(),
+            disks=self.disks(),
+        )
 
     @abstractmethod
     def network(self) -> dict: ...

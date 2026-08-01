@@ -7,6 +7,7 @@ import pytest
 import shutil
 import subprocess
 
+from sentinel_tools.models import CPUInfo, DiskInfo, MemoryInfo, SystemInfo
 from sentinel_tools.platform.base import Platform
 from sentinel_tools.platform.detect import get_platform
 from sentinel_tools.platform.linux import (
@@ -210,3 +211,38 @@ def test_read_storage_devices_returns_empty_when_lsblk_fails() -> None:
         ),
     ):
         assert _read_storage_devices() == []
+
+
+def test_system_info_aggregates_platform_data(monkeypatch) -> None:
+    platform_instance = LinuxPlatform()
+
+    cpu = CPUInfo(
+        model="Test CPU",
+        architecture="x86_64",
+        logical_cores=8,
+    )
+    memory = MemoryInfo(
+        total_bytes=16 * 1024**3,
+        available_bytes=8 * 1024**3,
+    )
+    disks = [
+        DiskInfo(
+            device="/dev/test",
+            mountpoint="/",
+            total_bytes=1000,
+            used_bytes=400,
+            free_bytes=600,
+        )
+    ]
+
+    monkeypatch.setattr(platform_instance, "cpu", lambda: cpu)
+    monkeypatch.setattr(platform_instance, "memory", lambda: memory)
+    monkeypatch.setattr(platform_instance, "disks", lambda: disks)
+
+    result = platform_instance.system_info()
+
+    assert isinstance(result, SystemInfo)
+    assert result.operating_system == "Linux"
+    assert result.cpu == cpu
+    assert result.memory == memory
+    assert result.disks == disks

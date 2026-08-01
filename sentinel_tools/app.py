@@ -29,10 +29,10 @@ def _format_bytes(value: int | None) -> str:
 
 
 def show_system_info() -> None:
-    platform_instance = get_platform()
-    cpu_info = platform_instance.cpu()
-    memory_info = platform_instance.memory()
-    disks = platform_instance.disks()
+    system_info = get_platform().system_info()
+    cpu_info = system_info.cpu
+    memory_info = system_info.memory
+    disks = system_info.disks
 
     used_memory = None
     if memory_info.total_bytes is not None and memory_info.available_bytes is not None:
@@ -43,7 +43,7 @@ def show_system_info() -> None:
     print("       SENTINEL SYSTEM INFORMATION")
     print("========================================")
     print()
-    print(f"Operating system: {platform_instance.name}")
+    print(f"Operating system: {system_info.operating_system}")
     print(f"Architecture:     {cpu_info.architecture or 'Unknown'}")
     print(f"Processor:        {cpu_info.model or 'Unknown'}")
     print(f"Logical cores:    {cpu_info.logical_cores or 'Unknown'}")

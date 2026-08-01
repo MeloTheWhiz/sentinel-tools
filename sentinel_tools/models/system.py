@@ -23,3 +23,11 @@ class DiskInfo:
     total_bytes: int
     used_bytes: int
     free_bytes: int
+
+
+@dataclass(slots=True)
+class SystemInfo:
+    operating_system: str
+    cpu: CPUInfo
+    memory: MemoryInfo
+    disks: list[DiskInfo]
