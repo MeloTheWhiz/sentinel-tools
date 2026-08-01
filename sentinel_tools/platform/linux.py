@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import platform
 import shutil
+import subprocess
 from pathlib import Path
 
 from sentinel_tools.models import CPUInfo, DiskInfo, MemoryInfo
@@ -135,6 +136,84 @@ def _read_disks() -> list[DiskInfo]:
     return disks
 
 
+def _read_storage_devices() -> list[str]:
+    if shutil.which("lsblk") is None:
+        return []
+
+    try:
+        result = subprocess.run(
+            ["lsblk", "-dnpo", "NAME,TYPE"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+
+    if result.returncode != 0:
+        return []
+
+    devices: list[str] = []
+
+    for line in result.stdout.splitlines():
+        parts = line.split()
+
+        if len(parts) != 2:
+            continue
+
+        device, device_type = parts
+
+        if device_type != "disk":
+            continue
+
+        if not device.startswith("/dev/"):
+            continue
+
+        devices.append(device)
+
+    return devices
+
+
+def _read_storage_devices() -> list[str]:
+    if shutil.which("lsblk") is None:
+        return []
+
+    try:
+        result = subprocess.run(
+            ["lsblk", "-dnpo", "NAME,TYPE"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+
+    if result.returncode != 0:
+        return []
+
+    devices: list[str] = []
+
+    for line in result.stdout.splitlines():
+        parts = line.split()
+
+        if len(parts) != 2:
+            continue
+
+        device, device_type = parts
+
+        if device_type != "disk":
+            continue
+
+        if not device.startswith("/dev/"):
+            continue
+
+        devices.append(device)
+
+    return devices
+
+
 class LinuxPlatform(Platform):
     @property
     def name(self) -> str:
@@ -152,6 +231,9 @@ class LinuxPlatform(Platform):
 
     def disks(self) -> list[DiskInfo]:
         return _read_disks()
+
+    def storage_devices(self) -> list[str]:
+        return _read_storage_devices()
 
     def network(self) -> dict:
         return {}

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 import shutil
+import subprocess
 
 from sentinel_tools.platform.base import Platform
 from sentinel_tools.platform.detect import get_platform
@@ -13,6 +14,7 @@ from sentinel_tools.platform.linux import (
     _read_cpu_model,
     _read_memory_info,
     _read_disks,
+    _read_storage_devices,
 )
 
 
@@ -146,3 +148,65 @@ def test_read_disks_returns_empty_when_mounts_file_missing(
 
     with patch("sentinel_tools.platform.linux.MOUNTS_PATH", missing_file):
         assert _read_disks() == []
+
+
+def test_read_storage_devices_discovers_physical_drives() -> None:
+    completed = subprocess.CompletedProcess(
+        args=["lsblk"],
+        returncode=0,
+        stdout=(
+            "/dev/sda disk\n"
+            "/dev/sda1 part\n"
+            "/dev/nvme0n1 disk\n"
+            "/dev/nvme0n1p1 part\n"
+            "/dev/mmcblk0 disk\n"
+        ),
+        stderr="",
+    )
+
+    with (
+        patch(
+            "sentinel_tools.platform.linux.shutil.which",
+            return_value="/usr/bin/lsblk",
+        ),
+        patch(
+            "sentinel_tools.platform.linux.subprocess.run",
+            return_value=completed,
+        ),
+    ):
+        devices = _read_storage_devices()
+
+    assert devices == [
+        "/dev/sda",
+        "/dev/nvme0n1",
+        "/dev/mmcblk0",
+    ]
+
+
+def test_read_storage_devices_returns_empty_without_lsblk() -> None:
+    with patch(
+        "sentinel_tools.platform.linux.shutil.which",
+        return_value=None,
+    ):
+        assert _read_storage_devices() == []
+
+
+def test_read_storage_devices_returns_empty_when_lsblk_fails() -> None:
+    completed = subprocess.CompletedProcess(
+        args=["lsblk"],
+        returncode=1,
+        stdout="",
+        stderr="lsblk failed",
+    )
+
+    with (
+        patch(
+            "sentinel_tools.platform.linux.shutil.which",
+            return_value="/usr/bin/lsblk",
+        ),
+        patch(
+            "sentinel_tools.platform.linux.subprocess.run",
+            return_value=completed,
+        ),
+    ):
+        assert _read_storage_devices() == []
