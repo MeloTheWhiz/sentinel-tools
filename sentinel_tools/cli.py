@@ -5,7 +5,6 @@ from pathlib import Path
 
 from sentinel_tools import __version__
 from sentinel_tools.aur import show_aur_audit
-from sentinel_tools.core import ensure_arch
 from sentinel_tools.engine import available_checks, run_check
 from sentinel_tools.logging.setup import configure_logging
 from sentinel_tools.reports.service import save_report
@@ -214,7 +213,6 @@ def main() -> None:
 
     logger = configure_logging()
     logger.info("Sentinel Tools started")
-    ensure_arch()
 
     from sentinel_tools.app import SentinelApp
 

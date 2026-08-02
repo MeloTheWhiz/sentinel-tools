@@ -10,6 +10,7 @@ from sentinel_tools.cli import (
     run_health_check,
     show_available_checks,
 )
+from sentinel_tools.core import ensure_arch
 from sentinel_tools.config.loader import load_config, plugin_modules
 from sentinel_tools.engine import registry
 from sentinel_tools.maintenance import clean, update
@@ -89,18 +90,23 @@ class SentinelApp:
         if command == "menu":
             menu()
         elif command == "health":
+            ensure_arch()
             run_health_check()
         elif command == "checks":
             show_available_checks()
         elif command == "system-info":
             show_system_info()
         elif command == "update":
+            ensure_arch()
             raise SystemExit(update())
         elif command == "clean":
+            ensure_arch()
             raise SystemExit(clean())
         elif command in DIAGNOSTIC_TITLES:
+            ensure_arch()
             run_diagnostic(command)
         elif command == "aur":
+            ensure_arch()
             raise SystemExit(show_aur_audit())
         elif command == "report":
             destination = save_report(
