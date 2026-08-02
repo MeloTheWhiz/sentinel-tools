@@ -29,6 +29,7 @@ def test_app_runs_health_command(monkeypatch) -> None:
         lambda: calls.append("health"),
     )
 
+    monkeypatch.setattr(app, "ensure_arch", lambda: None)
     sentinel = app.SentinelApp(config={})
     sentinel.run(Namespace(command="health"))
 
@@ -44,6 +45,7 @@ def test_app_runs_diagnostic_command(monkeypatch) -> None:
         lambda command: calls.append(command),
     )
 
+    monkeypatch.setattr(app, "ensure_arch", lambda: None)
     sentinel = app.SentinelApp(config={})
     sentinel.run(Namespace(command="network"))
 
@@ -68,6 +70,7 @@ def test_app_runs_report_command(monkeypatch, capsys) -> None:
         finding_code="NET001",
     )
 
+    monkeypatch.setattr(app, "ensure_arch", lambda: None)
     sentinel = app.SentinelApp(config={})
     sentinel.run(args)
 
@@ -99,6 +102,7 @@ def test_app_raises_exit_for_maintenance(
 ) -> None:
     monkeypatch.setattr(app, function_name, lambda: 0)
 
+    monkeypatch.setattr(app, "ensure_arch", lambda: None)
     sentinel = app.SentinelApp(config={})
 
     with pytest.raises(SystemExit) as error:
@@ -169,3 +173,62 @@ def test_app_runs_aur_command(monkeypatch) -> None:
 
     assert error.value.code == 0
     assert called
+
+
+def test_system_info_does_not_require_arch(monkeypatch) -> None:
+    calls: list[str] = []
+
+    monkeypatch.setattr(
+        app,
+        "ensure_arch",
+        lambda: calls.append("ensure_arch"),
+    )
+    monkeypatch.setattr(
+        app,
+        "show_system_info",
+        lambda: calls.append("system_info"),
+    )
+
+    app.SentinelApp(config={}).run(Namespace(command="system-info"))
+
+    assert calls == ["system_info"]
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "health",
+        "security",
+        "network",
+        "storage",
+        "aur",
+        "update",
+        "clean",
+        "report",
+    ],
+)
+def test_arch_only_commands_require_arch(
+    command: str,
+    monkeypatch,
+) -> None:
+    calls: list[str] = []
+
+    def fake_ensure_arch() -> None:
+        calls.append("ensure_arch")
+        raise SystemExit(1)
+
+    monkeypatch.setattr(app, "ensure_arch", fake_ensure_arch)
+
+    args = Namespace(
+        command=command,
+        format="text",
+        output=None,
+        redact=False,
+        severity=None,
+        finding_code=None,
+    )
+
+    with pytest.raises(SystemExit):
+        app.SentinelApp(config={}).run(args)
+
+    assert calls == ["ensure_arch"]

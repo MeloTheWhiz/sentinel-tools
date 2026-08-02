@@ -109,6 +109,7 @@ class SentinelApp:
             ensure_arch()
             raise SystemExit(show_aur_audit())
         elif command == "report":
+            ensure_arch()
             destination = save_report(
                 report_format=args.format,
                 output=args.output,
