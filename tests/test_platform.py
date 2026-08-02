@@ -7,6 +7,7 @@ import pytest
 import shutil
 import subprocess
 
+from sentinel_tools.platform.windows import WindowsPlatform
 from sentinel_tools.models import CPUInfo, DiskInfo, MemoryInfo, SystemInfo
 from sentinel_tools.platform.base import Platform
 from sentinel_tools.platform.detect import get_platform
@@ -246,3 +247,92 @@ def test_system_info_aggregates_platform_data(monkeypatch) -> None:
     assert result.cpu == cpu
     assert result.memory == memory
     assert result.disks == disks
+
+
+@patch(
+    "sentinel_tools.platform.detect.platform.system",
+    return_value="Windows",
+)
+def test_get_platform_returns_windows_platform(mock_system) -> None:
+    platform_instance = get_platform()
+
+    assert isinstance(platform_instance, WindowsPlatform)
+    mock_system.assert_called_once_with()
+
+
+def test_windows_platform_implements_base_interface() -> None:
+    platform_instance = WindowsPlatform()
+
+    assert isinstance(platform_instance, Platform)
+    assert platform_instance.name == "Windows"
+
+
+def test_windows_cpu_returns_shared_model() -> None:
+    with (
+        patch(
+            "sentinel_tools.platform.windows.platform.processor",
+            return_value="Test Windows CPU",
+        ),
+        patch(
+            "sentinel_tools.platform.windows.platform.machine",
+            return_value="AMD64",
+        ),
+        patch(
+            "sentinel_tools.platform.windows.os.cpu_count",
+            return_value=8,
+        ),
+    ):
+        cpu_info = WindowsPlatform().cpu()
+
+    assert cpu_info.model == "Test Windows CPU"
+    assert cpu_info.architecture == "AMD64"
+    assert cpu_info.logical_cores == 8
+
+
+def test_windows_disks_detect_drive_letters() -> None:
+    def fake_exists(path: str) -> bool:
+        return path in {"C:\\", "D:\\"}
+
+    def fake_disk_usage(path: str) -> object:
+        usage_by_path = {
+            "C:\\": shutil._ntuple_diskusage(
+                total=1000,
+                used=600,
+                free=400,
+            ),
+            "D:\\": shutil._ntuple_diskusage(
+                total=2000,
+                used=500,
+                free=1500,
+            ),
+        }
+        return usage_by_path[path]
+
+    with (
+        patch(
+            "sentinel_tools.platform.windows.os.path.exists",
+            side_effect=fake_exists,
+        ),
+        patch(
+            "sentinel_tools.platform.windows.shutil.disk_usage",
+            side_effect=fake_disk_usage,
+        ),
+    ):
+        disks = WindowsPlatform().disks()
+
+    assert len(disks) == 2
+
+    assert disks[0].device == "C:\\"
+    assert disks[0].mountpoint == "C:\\"
+    assert disks[0].total_bytes == 1000
+
+    assert disks[1].device == "D:\\"
+    assert disks[1].mountpoint == "D:\\"
+    assert disks[1].total_bytes == 2000
+
+
+def test_windows_memory_returns_unknown_off_windows() -> None:
+    memory_info = WindowsPlatform().memory()
+
+    assert memory_info.total_bytes is None
+    assert memory_info.available_bytes is None
