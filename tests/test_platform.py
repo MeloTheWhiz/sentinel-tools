@@ -19,6 +19,13 @@ from sentinel_tools.platform.linux import (
     _read_storage_devices,
 )
 
+from sentinel_tools.platform.macos import (
+    MacOSPlatform,
+    _read_cpu_model as _read_macos_cpu_model,
+    _read_disks as _read_macos_disks,
+    _read_memory_info as _read_macos_memory_info,
+)
+
 
 def test_linux_platform_implements_base_interface() -> None:
     platform_instance = LinuxPlatform()
@@ -336,3 +343,114 @@ def test_windows_memory_returns_unknown_off_windows() -> None:
 
     assert memory_info.total_bytes is None
     assert memory_info.available_bytes is None
+
+
+@patch(
+    "sentinel_tools.platform.detect.platform.system",
+    return_value="Darwin",
+)
+def test_get_platform_returns_macos_platform(mock_system) -> None:
+    platform_instance = get_platform()
+
+    assert isinstance(platform_instance, MacOSPlatform)
+    mock_system.assert_called_once_with()
+
+
+def test_macos_platform_implements_base_interface() -> None:
+    platform_instance = MacOSPlatform()
+
+    assert isinstance(platform_instance, Platform)
+    assert platform_instance.name == "macOS"
+
+
+def test_macos_cpu_uses_sysctl_model() -> None:
+    with (
+        patch(
+            "sentinel_tools.platform.macos._run_sysctl",
+            side_effect=lambda name: {
+                "machdep.cpu.brand_string": "Apple M2",
+                "hw.model": "Mac14,5",
+            }.get(name),
+        ),
+        patch(
+            "sentinel_tools.platform.macos.platform.machine",
+            return_value="arm64",
+        ),
+        patch(
+            "sentinel_tools.platform.macos.os.cpu_count",
+            return_value=8,
+        ),
+    ):
+        cpu_info = MacOSPlatform().cpu()
+
+    assert cpu_info.model == "Apple M2"
+    assert cpu_info.architecture == "arm64"
+    assert cpu_info.logical_cores == 8
+
+
+def test_macos_memory_reads_total_bytes() -> None:
+    with patch(
+        "sentinel_tools.platform.macos._run_sysctl",
+        return_value=str(16 * 1024**3),
+    ):
+        memory_info = _read_macos_memory_info()
+
+    assert memory_info.total_bytes == 16 * 1024**3
+    assert memory_info.available_bytes is None
+
+
+def test_macos_memory_returns_unknown_for_invalid_value() -> None:
+    with patch(
+        "sentinel_tools.platform.macos._run_sysctl",
+        return_value="invalid",
+    ):
+        memory_info = _read_macos_memory_info()
+
+    assert memory_info.total_bytes is None
+    assert memory_info.available_bytes is None
+
+
+def test_macos_cpu_falls_back_to_hw_model() -> None:
+    with patch(
+        "sentinel_tools.platform.macos._run_sysctl",
+        side_effect=lambda name: "MacBookAir7,1" if name == "hw.model" else None,
+    ):
+        assert _read_macos_cpu_model() == "MacBookAir7,1"
+
+
+def test_macos_disks_include_root_and_volumes(tmp_path: Path) -> None:
+    volumes = tmp_path / "Volumes"
+    external = volumes / "External"
+    volumes.mkdir()
+    external.mkdir()
+
+    def fake_disk_usage(mountpoint: str) -> object:
+        usage_by_mountpoint = {
+            "/": shutil._ntuple_diskusage(
+                total=1000,
+                used=400,
+                free=600,
+            ),
+            str(external): shutil._ntuple_diskusage(
+                total=2000,
+                used=500,
+                free=1500,
+            ),
+        }
+        return usage_by_mountpoint[mountpoint]
+
+    with (
+        patch(
+            "sentinel_tools.platform.macos.VOLUMES_PATH",
+            volumes,
+        ),
+        patch(
+            "sentinel_tools.platform.macos.shutil.disk_usage",
+            side_effect=fake_disk_usage,
+        ),
+    ):
+        disks = _read_macos_disks()
+
+    assert len(disks) == 2
+    assert disks[0].mountpoint == "/"
+    assert disks[1].mountpoint == str(external)

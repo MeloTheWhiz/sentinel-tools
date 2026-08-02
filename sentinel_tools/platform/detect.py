@@ -4,6 +4,7 @@ import platform
 
 from .base import Platform
 from .linux import LinuxPlatform
+from .macos import MacOSPlatform
 from .windows import WindowsPlatform
 
 
@@ -15,5 +16,8 @@ def get_platform() -> Platform:
 
     if system == "Windows":
         return WindowsPlatform()
+
+    if system == "Darwin":
+        return MacOSPlatform()
 
     raise NotImplementedError(f"{system} is not supported yet.")
