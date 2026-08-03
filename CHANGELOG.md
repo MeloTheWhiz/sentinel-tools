@@ -6,6 +6,33 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- Shared platform abstraction for Linux, Windows, macOS, and FreeBSD
+- Unified `CPUInfo`, `MemoryInfo`, `DiskInfo`, and `SystemInfo` models
+- Cross-platform `system-info` command
+- Initial Linux platform implementation
+- Initial Windows platform implementation
+- Initial macOS platform implementation
+- Initial FreeBSD platform implementation
+- Physical storage-device discovery for SMART checks
+- Platform-specific command boundary tests
+
+### Changed
+
+- Restricted Arch-specific commands to Arch Linux while allowing platform-neutral commands to run on supported platforms
+- Refactored system information collection to use the shared platform layer
+- Improved mounted-storage output by filtering pseudo-filesystems and duplicate devices
+- Expanded the automated test suite to 140 tests
+
+### Fixed
+
+- Removed the hardcoded `/dev/sda` assumption from SMART checks
+- Added detection for SATA, NVMe, MMC, and virtual-machine disk names
+- Excluded `zram`, loop devices, and RAM disks from SMART checks
+
 ## [0.2.0] - 2026-07-29
 
 ### Added
