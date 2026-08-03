@@ -26,6 +26,13 @@ from sentinel_tools.platform.macos import (
     _read_memory_info as _read_macos_memory_info,
 )
 
+from sentinel_tools.platform.freebsd import (
+    FreeBSDPlatform,
+    _read_cpu_model as _read_freebsd_cpu_model,
+    _read_disks as _read_freebsd_disks,
+    _read_memory_info as _read_freebsd_memory_info,
+)
+
 
 def test_linux_platform_implements_base_interface() -> None:
     platform_instance = LinuxPlatform()
@@ -454,3 +461,141 @@ def test_macos_disks_include_root_and_volumes(tmp_path: Path) -> None:
     assert len(disks) == 2
     assert disks[0].mountpoint == "/"
     assert disks[1].mountpoint == str(external)
+
+
+@patch(
+    "sentinel_tools.platform.detect.platform.system",
+    return_value="FreeBSD",
+)
+def test_get_platform_returns_freebsd_platform(mock_system) -> None:
+    platform_instance = get_platform()
+
+    assert isinstance(platform_instance, FreeBSDPlatform)
+    mock_system.assert_called_once_with()
+
+
+def test_freebsd_platform_implements_base_interface() -> None:
+    platform_instance = FreeBSDPlatform()
+
+    assert isinstance(platform_instance, Platform)
+    assert platform_instance.name == "FreeBSD"
+
+
+def test_freebsd_cpu_uses_sysctl_model() -> None:
+    with (
+        patch(
+            "sentinel_tools.platform.freebsd._run_sysctl",
+            return_value="AMD Ryzen 7 5700G",
+        ),
+        patch(
+            "sentinel_tools.platform.freebsd.platform.machine",
+            return_value="amd64",
+        ),
+        patch(
+            "sentinel_tools.platform.freebsd.os.cpu_count",
+            return_value=16,
+        ),
+    ):
+        cpu_info = FreeBSDPlatform().cpu()
+
+    assert cpu_info.model == "AMD Ryzen 7 5700G"
+    assert cpu_info.architecture == "amd64"
+    assert cpu_info.logical_cores == 16
+
+
+def test_freebsd_memory_reads_total_bytes() -> None:
+    with patch(
+        "sentinel_tools.platform.freebsd._run_sysctl",
+        return_value=str(32 * 1024**3),
+    ):
+        memory_info = _read_freebsd_memory_info()
+
+    assert memory_info.total_bytes == 32 * 1024**3
+    assert memory_info.available_bytes is None
+
+
+def test_freebsd_memory_returns_unknown_for_invalid_value() -> None:
+    with patch(
+        "sentinel_tools.platform.freebsd._run_sysctl",
+        return_value="invalid",
+    ):
+        memory_info = _read_freebsd_memory_info()
+
+    assert memory_info.total_bytes is None
+    assert memory_info.available_bytes is None
+
+
+def test_freebsd_cpu_falls_back_to_platform_processor() -> None:
+    with (
+        patch(
+            "sentinel_tools.platform.freebsd._run_sysctl",
+            return_value=None,
+        ),
+        patch(
+            "sentinel_tools.platform.freebsd.platform.processor",
+            return_value="Fallback CPU",
+        ),
+    ):
+        assert _read_freebsd_cpu_model() == "Fallback CPU"
+
+
+def test_freebsd_disks_parse_df_output() -> None:
+    completed = subprocess.CompletedProcess(
+        args=["df", "-kP"],
+        returncode=0,
+        stdout=(
+            "Filesystem 1024-blocks Used Available Capacity Mounted on\n"
+            "/dev/ada0p2 1000000 400000 600000 40% /\n"
+            "tmpfs 100000 1000 99000 1% /tmp\n"
+            "/dev/ada0p1 500000 100000 400000 20% /boot\n"
+        ),
+        stderr="",
+    )
+
+    def fake_disk_usage(mountpoint: str) -> object:
+        usage_by_mountpoint = {
+            "/": shutil._ntuple_diskusage(
+                total=1000,
+                used=400,
+                free=600,
+            ),
+            "/boot": shutil._ntuple_diskusage(
+                total=500,
+                used=100,
+                free=400,
+            ),
+        }
+        return usage_by_mountpoint[mountpoint]
+
+    with (
+        patch(
+            "sentinel_tools.platform.freebsd.subprocess.run",
+            return_value=completed,
+        ),
+        patch(
+            "sentinel_tools.platform.freebsd.shutil.disk_usage",
+            side_effect=fake_disk_usage,
+        ),
+    ):
+        disks = _read_freebsd_disks()
+
+    assert len(disks) == 2
+    assert disks[0].device == "/dev/ada0p2"
+    assert disks[0].mountpoint == "/"
+    assert disks[1].device == "/dev/ada0p1"
+    assert disks[1].mountpoint == "/boot"
+
+
+def test_freebsd_disks_return_empty_when_df_fails() -> None:
+    completed = subprocess.CompletedProcess(
+        args=["df", "-kP"],
+        returncode=1,
+        stdout="",
+        stderr="df failed",
+    )
+
+    with patch(
+        "sentinel_tools.platform.freebsd.subprocess.run",
+        return_value=completed,
+    ):
+        assert _read_freebsd_disks() == []
