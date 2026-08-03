@@ -171,6 +171,7 @@ def test_read_storage_devices_discovers_physical_drives() -> None:
         args=["lsblk"],
         returncode=0,
         stdout=(
+            "/dev/zram0 disk\n"
             "/dev/sda disk\n"
             "/dev/sda1 part\n"
             "/dev/nvme0n1 disk\n"

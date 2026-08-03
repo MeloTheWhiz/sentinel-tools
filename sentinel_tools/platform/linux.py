@@ -170,43 +170,13 @@ def _read_storage_devices() -> list[str]:
         if not device.startswith("/dev/"):
             continue
 
-        devices.append(device)
-
-    return devices
-
-
-def _read_storage_devices() -> list[str]:
-    if shutil.which("lsblk") is None:
-        return []
-
-    try:
-        result = subprocess.run(
-            ["lsblk", "-dnpo", "NAME,TYPE"],
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=10,
+        ignored_prefixes = (
+            "/dev/loop",
+            "/dev/ram",
+            "/dev/zram",
         )
-    except (OSError, subprocess.SubprocessError):
-        return []
 
-    if result.returncode != 0:
-        return []
-
-    devices: list[str] = []
-
-    for line in result.stdout.splitlines():
-        parts = line.split()
-
-        if len(parts) != 2:
-            continue
-
-        device, device_type = parts
-
-        if device_type != "disk":
-            continue
-
-        if not device.startswith("/dev/"):
+        if device.startswith(ignored_prefixes):
             continue
 
         devices.append(device)
