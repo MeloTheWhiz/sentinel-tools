@@ -77,12 +77,16 @@ def test_build_parser_contains_expected_commands() -> None:
     assert {
         "menu",
         "health",
-        "update",
         "clean",
         "security",
         "network",
         "storage",
         "checks",
+        "system-info",
+        "inventory",
+        "update",
+        "clean",
+        "aur",
         "report",
     } <= set(choices)
 

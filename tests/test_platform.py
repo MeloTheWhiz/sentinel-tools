@@ -16,6 +16,7 @@ from sentinel_tools.platform.linux import (
     _read_cpu_model,
     _read_memory_info,
     _read_disks,
+    _read_dmi_value,
     _read_storage_devices,
 )
 
@@ -600,3 +601,45 @@ def test_freebsd_disks_return_empty_when_df_fails() -> None:
         return_value=completed,
     ):
         assert _read_freebsd_disks() == []
+
+
+def test_read_dmi_value_returns_trimmed_value(tmp_path: Path) -> None:
+    dmi_path = tmp_path / "dmi"
+    dmi_path.mkdir()
+
+    vendor_file = dmi_path / "sys_vendor"
+    vendor_file.write_text("Lenovo\n", encoding="utf-8")
+
+    with patch("sentinel_tools.platform.linux.DMI_PATH", dmi_path):
+        assert _read_dmi_value("sys_vendor") == "Lenovo"
+
+
+def test_read_dmi_value_returns_none_when_missing(tmp_path: Path) -> None:
+    dmi_path = tmp_path / "dmi"
+    dmi_path.mkdir()
+
+    with patch("sentinel_tools.platform.linux.DMI_PATH", dmi_path):
+        assert _read_dmi_value("product_name") is None
+
+
+def test_linux_inventory_reads_dmi_metadata(tmp_path: Path) -> None:
+    dmi_path = tmp_path / "dmi"
+    dmi_path.mkdir()
+
+    values = {
+        "sys_vendor": "Lenovo",
+        "product_name": "ThinkCentre M715q",
+        "bios_vendor": "LENOVO",
+        "bios_version": "M11KT39A",
+    }
+
+    for filename, value in values.items():
+        (dmi_path / filename).write_text(value, encoding="utf-8")
+
+    with patch("sentinel_tools.platform.linux.DMI_PATH", dmi_path):
+        platform_instance = LinuxPlatform()
+
+        assert platform_instance.computer_vendor() == "Lenovo"
+        assert platform_instance.computer_model() == "ThinkCentre M715q"
+        assert platform_instance.bios_vendor() == "LENOVO"
+        assert platform_instance.bios_version() == "M11KT39A"

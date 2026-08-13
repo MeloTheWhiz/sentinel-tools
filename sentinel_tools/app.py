@@ -70,6 +70,49 @@ def show_system_info() -> None:
     print("========================================")
 
 
+def show_hardware_inventory() -> None:
+    inventory = get_platform().inventory()
+
+    print()
+    print("========================================")
+    print("       SENTINEL HARDWARE INVENTORY")
+    print("========================================")
+    print()
+
+    print(f"Computer vendor: {inventory.computer_vendor or 'Unknown'}")
+    print(f"Computer model:  {inventory.computer_model or 'Unknown'}")
+    print(f"BIOS vendor:     {inventory.bios_vendor or 'Unknown'}")
+    print(f"BIOS version:    {inventory.bios_version or 'Unknown'}")
+
+    print()
+    print("CPU:")
+    print(f"  Model:         {inventory.cpu.model or 'Unknown'}")
+    print(f"  Architecture:  {inventory.cpu.architecture or 'Unknown'}")
+    print(f"  Logical cores: {inventory.cpu.logical_cores or 'Unknown'}")
+
+    print()
+    print("Memory:")
+    print(f"  Total:         {_format_bytes(inventory.memory.total_bytes)}")
+    print(f"  Available:     {_format_bytes(inventory.memory.available_bytes)}")
+
+    print()
+    print("Storage:")
+
+    if not inventory.disks:
+        print("  No mounted storage detected.")
+    else:
+        for disk in inventory.disks:
+            print(
+                f"  {disk.mountpoint}: "
+                f"{_format_bytes(disk.used_bytes)} used / "
+                f"{_format_bytes(disk.total_bytes)} total "
+                f"({_format_bytes(disk.free_bytes)} free)"
+            )
+
+    print()
+    print("========================================")
+
+
 class SentinelApp:
     """Coordinate Sentinel Tools startup and command execution."""
 
@@ -96,6 +139,8 @@ class SentinelApp:
             show_available_checks()
         elif command == "system-info":
             show_system_info()
+        elif command == "inventory":
+            show_hardware_inventory()
         elif command == "update":
             ensure_arch()
             raise SystemExit(update())

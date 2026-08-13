@@ -175,7 +175,7 @@ def test_app_runs_aur_command(monkeypatch) -> None:
     assert called
 
 
-def test_system_info_does_not_require_arch(monkeypatch) -> None:
+def test_inventory_does_not_require_arch(monkeypatch) -> None:
     calls: list[str] = []
 
     monkeypatch.setattr(
@@ -185,13 +185,13 @@ def test_system_info_does_not_require_arch(monkeypatch) -> None:
     )
     monkeypatch.setattr(
         app,
-        "show_system_info",
-        lambda: calls.append("system_info"),
+        "show_hardware_inventory",
+        lambda: calls.append("inventory"),
     )
 
-    app.SentinelApp(config={}).run(Namespace(command="system-info"))
+    app.SentinelApp(config={}).run(Namespace(command="inventory"))
 
-    assert calls == ["system_info"]
+    assert calls == ["inventory"]
 
 
 @pytest.mark.parametrize(

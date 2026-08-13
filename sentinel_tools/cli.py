@@ -174,6 +174,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Display platform-neutral operating system and hardware information.",
     )
     subparsers.add_parser(
+        "inventory",
+        help="Display detailed hardware inventory information.",
+    )
+    subparsers.add_parser(
         "clean", help="Perform guided package and filesystem cleanup."
     )
     subparsers.add_parser(

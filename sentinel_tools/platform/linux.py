@@ -14,6 +14,7 @@ from .base import Platform
 CPUINFO_PATH = Path("/proc/cpuinfo")
 MEMINFO_PATH = Path("/proc/meminfo")
 MOUNTS_PATH = Path("/proc/mounts")
+DMI_PATH = Path("/sys/class/dmi/id")
 
 
 def _read_cpu_model() -> str | None:
@@ -28,6 +29,17 @@ def _read_cpu_model() -> str | None:
             model = value.strip()
             if model:
                 return model
+
+
+def _read_dmi_value(filename: str) -> str | None:
+    path = DMI_PATH / filename
+
+    try:
+        value = path.read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeError):
+        return None
+
+    return value or None
 
 
 def _read_memory_info() -> MemoryInfo:
@@ -204,6 +216,18 @@ class LinuxPlatform(Platform):
 
     def storage_devices(self) -> list[str]:
         return _read_storage_devices()
+
+    def computer_vendor(self) -> str | None:
+        return _read_dmi_value("sys_vendor")
+
+    def computer_model(self) -> str | None:
+        return _read_dmi_value("product_name")
+
+    def bios_vendor(self) -> str | None:
+        return _read_dmi_value("bios_vendor")
+
+    def bios_version(self) -> str | None:
+        return _read_dmi_value("bios_version")
 
     def network(self) -> dict:
         return {}
