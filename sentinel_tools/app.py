@@ -3,6 +3,7 @@ from __future__ import annotations
 from argparse import Namespace
 from collections.abc import Mapping
 
+from sentinel_tools.aur import show_aur_audit
 from sentinel_tools.cli import (
     DIAGNOSTIC_TITLES,
     menu,
@@ -10,15 +11,14 @@ from sentinel_tools.cli import (
     run_health_check,
     show_available_checks,
 )
-from sentinel_tools.core import ensure_arch
 from sentinel_tools.config.loader import load_config, plugin_modules
+from sentinel_tools.core import ensure_arch
 from sentinel_tools.engine import registry
 from sentinel_tools.maintenance import clean, update
+from sentinel_tools.platform import get_platform
 from sentinel_tools.plugins import load_plugins
 from sentinel_tools.reports.service import save_report
-from sentinel_tools.aur import show_aur_audit
 from sentinel_tools.ui.console import status
-from sentinel_tools.platform import get_platform
 
 
 def _format_bytes(value: int | None) -> str:

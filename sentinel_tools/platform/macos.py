@@ -10,7 +10,6 @@ from sentinel_tools.models import CPUInfo, DiskInfo, MemoryInfo
 
 from .base import Platform
 
-
 VOLUMES_PATH = Path("/Volumes")
 
 

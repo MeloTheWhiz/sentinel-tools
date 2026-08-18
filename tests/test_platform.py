@@ -1,38 +1,48 @@
 from __future__ import annotations
 
-from unittest.mock import patch
-from pathlib import Path
-
-import pytest
 import shutil
 import subprocess
+from pathlib import Path
+from unittest.mock import patch
 
-from sentinel_tools.platform.windows import WindowsPlatform
+import pytest
+
 from sentinel_tools.models import CPUInfo, DiskInfo, MemoryInfo, SystemInfo
 from sentinel_tools.platform.base import Platform
 from sentinel_tools.platform.detect import get_platform
+from sentinel_tools.platform.freebsd import (
+    FreeBSDPlatform,
+)
+from sentinel_tools.platform.freebsd import (
+    _read_cpu_model as _read_freebsd_cpu_model,
+)
+from sentinel_tools.platform.freebsd import (
+    _read_disks as _read_freebsd_disks,
+)
+from sentinel_tools.platform.freebsd import (
+    _read_memory_info as _read_freebsd_memory_info,
+)
 from sentinel_tools.platform.linux import (
     LinuxPlatform,
     _read_cpu_model,
-    _read_memory_info,
     _read_disks,
     _read_dmi_value,
+    _read_memory_info,
     _read_storage_devices,
 )
-
 from sentinel_tools.platform.macos import (
     MacOSPlatform,
+)
+from sentinel_tools.platform.macos import (
     _read_cpu_model as _read_macos_cpu_model,
+)
+from sentinel_tools.platform.macos import (
     _read_disks as _read_macos_disks,
+)
+from sentinel_tools.platform.macos import (
     _read_memory_info as _read_macos_memory_info,
 )
-
-from sentinel_tools.platform.freebsd import (
-    FreeBSDPlatform,
-    _read_cpu_model as _read_freebsd_cpu_model,
-    _read_disks as _read_freebsd_disks,
-    _read_memory_info as _read_freebsd_memory_info,
-)
+from sentinel_tools.platform.windows import WindowsPlatform
 
 
 def test_linux_platform_implements_base_interface() -> None:

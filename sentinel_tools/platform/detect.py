@@ -3,10 +3,10 @@ from __future__ import annotations
 import platform
 
 from .base import Platform
+from .freebsd import FreeBSDPlatform
 from .linux import LinuxPlatform
 from .macos import MacOSPlatform
 from .windows import WindowsPlatform
-from .freebsd import FreeBSDPlatform
 
 
 def get_platform() -> Platform:

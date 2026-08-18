@@ -10,7 +10,6 @@ from sentinel_tools.models import CPUInfo, DiskInfo, MemoryInfo
 
 from .base import Platform
 
-
 CPUINFO_PATH = Path("/proc/cpuinfo")
 MEMINFO_PATH = Path("/proc/meminfo")
 MOUNTS_PATH = Path("/proc/mounts")

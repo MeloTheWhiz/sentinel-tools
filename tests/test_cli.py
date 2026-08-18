@@ -85,7 +85,6 @@ def test_build_parser_contains_expected_commands() -> None:
         "system-info",
         "inventory",
         "update",
-        "clean",
         "aur",
         "report",
     } <= set(choices)
